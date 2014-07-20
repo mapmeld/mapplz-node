@@ -13,6 +13,9 @@ it into a database.
 Adding some data:
 
 ```
+var MapPLZ = require('../mapplz').MapPLZ;
+var mapstore = new MapPLZ();
+
 mapstore = new MapPLZ();
 
 // add points
@@ -41,7 +44,7 @@ Each feature is added to the mapstore and returned as a MapItem
 pt = mapstore.add(40, -70);
 line = mapstore.add([[40, -70], [50, 20]], { "color": "red" });
 
-mapstore.count == 2
+mapstore.count() == 2
 
 // export all with mapstore.ToGeoJson()
 
