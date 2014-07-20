@@ -1,0 +1,33 @@
+{
+  "name": "mapplz",
+  "description": "Simple geodata and mapmaking",
+  "keywords": [
+    "map",
+    "etl",
+    "geo",
+    "gis",
+    "postgis",
+    "spatial"
+  ],
+  "version": "0.0.3",
+  "author": "mapmeld",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mapmeld/mapplz-node.git"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "should": ">= 0.0.1",
+    "mocha": "1.18.x",
+    "chai": "1.9.x"
+  },
+  "engines": {
+    "node": "0.10.x",
+    "npm": "1.2.x"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "license": "FreeBSD"
+}
