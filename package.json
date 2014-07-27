@@ -9,14 +9,16 @@
     "postgis",
     "spatial"
   ],
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": "mapmeld",
   "repository": {
     "type": "git",
     "url": "https://github.com/mapmeld/mapplz-node.git"
   },
   "dependencies": {
-    "coffee-script": "1.7.x"
+    "coffee-script": "1.7.x",
+    "pg": "3.4.x",
+    "mongodb": "1.4.x"
   },
   "devDependencies": {
     "coffeelint": "1.5.x",
@@ -30,9 +32,9 @@
     "npm": "1.2.x"
   },
   "scripts": {
-    "test": "npm run test-mocha && npm run test-coffeelint",
+    "test": "npm run test-coffeelint && npm run test-mocha",
     "test-mocha": "mocha --compilers coffee:coffee-script/register",
-    "test-coffeelint": "coffeelint ./*.coffee"
+    "test-coffeelint": "coffeelint -f test/coffeelint.json ./*.coffee"
   },
   "license": "FreeBSD"
 }

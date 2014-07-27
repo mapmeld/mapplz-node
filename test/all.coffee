@@ -162,3 +162,12 @@ describe('add GeoJSON', ->
     assert.equal(pt.properties.color, "#f00")
   )
 )
+
+describe('queries', ->
+  it('returns a count of points added', ->
+    mapstore = new MapPLZ
+    mapstore.add(40, -70)
+    mapstore.add(40, -70)
+    assert.equal(mapstore.count(), 2)
+  )
+)

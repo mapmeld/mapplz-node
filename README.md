@@ -34,26 +34,39 @@ mapstore.add({ "type": "Feature", "geometry": { "type": "Point", "coordinates": 
 mapstore.add('{ "type": "Feature", "geometry": { "type": "Point", "coordinates": [-70, 40] } }');
 
 // add properties
-pt = mapstore.Add({ "type": "Feature", "geometry": { "type": "Point", "coordinates": [-70, 40] }, "properties": { "color": "#0f0" }});
+pt = mapstore.add({ "type": "Feature", "geometry": { "type": "Point", "coordinates": [-70, 40] }, "properties": { "color": "#0f0" }});
 pt.properties.color == "#0f0";
+
+pt2 = mapstore.add({ lat: 40, lng: -70, color: "blue" });
+pt3 = mapstore.add(40, -70, { color: "blue" });
 ```
 
-Each feature is added to the mapstore and returned as a MapItem
+Each feature is added to a database and returned as a MapItem
 
 ```
 pt = mapstore.add(40, -70);
 line = mapstore.add([[40, -70], [50, 20]], { "color": "red" });
 
+pt.lat == 40
+pt.toGeoJson() == '{ "type": "Feature", "geometry": { "type": "Point", "coordinates": [-70, 40] }}'
+
 mapstore.count() == 2
 
 // export all with mapstore.ToGeoJson()
 
-pt.lat == 40
-pt.toGeoJson() == '{ "type": "Feature", "geometry": { "type": "Point", "coordinates": [-70, 40] }}'
-
 line.type == "line"
 line.path == [[40, -70], [50, 20]]
 line.properties.color
+```
+
+## Databases
+
+If you want to store geodata in a database, you can use Postgres/PostGIS or MongoDB.
+
+MapPLZ simplifies geodata management and queries.
+
+### Setting up PostGIS
+```
 ```
 
 ## License

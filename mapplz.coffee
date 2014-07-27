@@ -3,7 +3,7 @@ MapPLZ = ->
 
 MapPLZ.prototype.add = (param1, param2, param3) ->
   this.mapitems = [] unless this.mapitems
-  this.dbtype = "array" unless this.dbtype
+  this.database = null unless this.database
 
   # try for lat, lng point
   lat = param1 * 1
@@ -33,7 +33,7 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
         # string, number, or other singular property
         pt.properties = { property: param3 }
 
-    this.mapitems.push pt
+    this.save pt
     return pt
 
   if typeof param1 == 'string'
@@ -42,7 +42,7 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       param1 = JSON.parse param1
       if this.isGeoJson param1
         result = this.addGeoJson param1
-        this.mapitems.push result
+        this.save result
         return result
     catch
 
@@ -70,7 +70,7 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
           else
             result.properties = { property: prop }
 
-        this.mapitems.push result
+        this.save result
         return result
 
     if typeof param1[0] == 'object'
@@ -106,14 +106,14 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
         else
           result.properties = {}
 
-        this.mapitems.push result
+        this.save result
         return result
       else
         # param1 contains an array of objects to add
         results = []
         for obj in param1
           results.push this.add(obj)
-        this.mapitems.concat results
+        this.save results
         return results
 
 
@@ -127,7 +127,7 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       result.properties = {}
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'lat' || key == 'lng'
-      this.mapitems.push result
+      this.save result
       return result
 
     else if param1.path
@@ -145,13 +145,34 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'path'
 
-      this.mapitems.push result
+      this.save result
       return result
 
     else if this.isGeoJson param1
       results = this.addGeoJson param1
-      this.mapitems.concat results
+      this.save results
       return results
+
+MapPLZ.prototype.count = (query) ->
+  if this.database
+    return this.database.count query
+  else
+    return this.mapitems.length
+
+MapPLZ.prototype.save = (items) ->
+  if this.database
+    if this.isArray(items)
+      for item in items
+        item.database = this.database
+        item.save
+    else
+      items.database = this.database
+      items.save
+  else
+    if this.isArray(items)
+      this.mapitems.concat items
+    else
+      this.mapitems.push items
 
 MapPLZ.prototype.isArray = (inspect) ->
   return (typeof inspect == 'object' && typeof inspect.push == 'function')
@@ -198,7 +219,38 @@ MapItem.prototype.toGeoJson = ->
     polypath = [MapPLZ.prototype.reverse_path(this.path[0])]
     gj_geo = { type: "Polygon", coordinates: polypath }
 
-  JSON.parse { type: "Feature", geometry: gj_geo, properties: this.properties }
+  JSON.stringify { type: "Feature", geometry: gj_geo, properties: this.properties }
+MapItem.prototype.toWKT = ->
+  if this.type == "point"
+    "POINT(#{this.lng this.lat})"
+  else if this.type == "line"
+    linepath = MapPLZ.prototype.reverse_path(this.path)
+    "LINESTRING(())"
+  else if this.type == 'polygon'
+    polypath = [MapPLZ.prototype.reverse_path(this.path[0])]
+    "POLYGON(())"
+
+MapItem.prototype.save = ->
+  if this.database
+    this.id = this.database.save(this)
+
+PostGIS = ->
+PostGIS.prototype.initialize = (client) ->
+  this.client = client
+PostGIS.prototype.save = (item) ->
+  this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT}')) RETURNING id", (err, result) ->
+    if err
+      err
+    else
+      result.rows[0].id
+PostGIS.prototype.count = (query) ->
+  this.client.query 'SELECT COUNT(*) AS count FROM mapplz', (err, result) ->
+    if err
+      err
+    else
+      result.rows[0].count
 
 if exports
   exports.MapPLZ = MapPLZ
+  exports.MapItem = MapItem
+  exports.PostGIS = PostGIS
