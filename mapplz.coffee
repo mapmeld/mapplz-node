@@ -3,10 +3,10 @@ MapPLZ = ->
 
 MapPLZ.prototype.standardize = (geo, props) ->
   result = new MapItem
-  if geo.lat && geo.lng
+  if typeof geo.lat != "undefined" && typeof geo.lng != "undefined"
     result.lat = geo.lat * 1
     result.lng = geo.lng * 1
-  if geo.path
+  else if geo.path
     result.path = geo.path
   result.properties = props || {}
   result
@@ -60,7 +60,7 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       lat = param1[0] * 1
       lng = param1[1] * 1
       unless isNaN(lat) || isNaN(lng)
-        result = this.standardize({ lat: lat, lng: lng })
+        result = this.standardize { lat: lat, lng: lng }
         result.type = 'point'
         for prop in param1.slice(2)
           if typeof prop == 'string'
@@ -189,6 +189,7 @@ MapPLZ.prototype.addGeoJson = (gj) ->
 
   else if gj.type == "Feature"
     geom = gj.geometry
+    result = ""
     if geom.type == "Point"
       result = this.standardize({ lat: geom.coordinates[1], lng: geom.coordinates[0] })
       result.type = "point"
@@ -244,23 +245,24 @@ PostGIS = ->
 PostGIS.prototype.save = (item) ->
   this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
     if err
-      console.error(err)
+      console.error err
     else
       item.id = result.rows[0].id
 PostGIS.prototype.count = (query, callback) ->
   this.client.query 'SELECT COUNT(*) AS count FROM mapplz', (err, result) ->
     callback(err, result.rows[0].count || null)
 PostGIS.prototype.query = (query, callback) ->
-  this.client.query 'SELECT ST_AsGeoJSON(geom), props FROM mapplz', (err, result) ->
+  this.client.query 'SELECT ST_AsGeoJSON(geom) AS geom, properties FROM mapplz', (err, result) ->
     if err
+      console.error err
       callback(err, [])
     else
       results = []
       for row in result.rows
         geo = JSON.parse(row.geom)
-        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: geo, properties: JSON.parse(row.props) }
+        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
         results.push result
-      results
+      callback(err, results)
 
 if exports
   exports.MapPLZ = MapPLZ
