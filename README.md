@@ -50,13 +50,20 @@ line = mapstore.add([[40, -70], [50, 20]], { "color": "red" });
 pt.lat == 40
 pt.toGeoJson() == '{ "type": "Feature", "geometry": { "type": "Point", "coordinates": [-70, 40] }}'
 
-mapstore.count() == 2
-
-// export all with mapstore.ToGeoJson()
-
 line.type == "line"
 line.path == [[40, -70], [50, 20]]
 line.properties.color
+```
+
+You can run several queries on the data, asynchronously:
+
+```
+mapstore.count(null, function(err, count) {
+  // count == 2
+});
+mapstore.count("color = 'blue'", function(err, count) {
+  // count == 1
+});
 ```
 
 ## Databases

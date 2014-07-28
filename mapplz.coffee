@@ -153,21 +153,31 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       this.save results
       return results
 
-MapPLZ.prototype.count = (query) ->
+MapPLZ.prototype.count = (query, callback) ->
   if this.database
-    return this.database.count query
+    this.database.count(query, callback)
   else
-    return this.mapitems.length
+    this.query query, (err, results) ->
+      callback(err, results.length)
+
+MapPLZ.prototype.query = (query, callback) ->
+  if this.database
+    this.database.query(query, callback)
+  else
+    callback(null, this.mapitems)
+
+MapPLZ.prototype.where = (query, callback) ->
+  return this.query(query, callback)
 
 MapPLZ.prototype.save = (items) ->
   if this.database
     if this.isArray(items)
       for item in items
         item.database = this.database
-        item.save
+        item.save()
     else
       items.database = this.database
-      items.save
+      items.save()
   else
     if this.isArray(items)
       this.mapitems.concat items
@@ -222,33 +232,37 @@ MapItem.prototype.toGeoJson = ->
   JSON.stringify { type: "Feature", geometry: gj_geo, properties: this.properties }
 MapItem.prototype.toWKT = ->
   if this.type == "point"
-    "POINT(#{this.lng this.lat})"
+    "POINT(#{this.lng} #{this.lat})"
   else if this.type == "line"
     linepath = MapPLZ.prototype.reverse_path(this.path)
-    "LINESTRING(())"
+    for p, pt in linepath
+      linepath[pt] = linepath[pt].join ' '
+    linepath = linepath.join ','
+    "LINESTRING((#{linepath}))"
   else if this.type == 'polygon'
     polypath = [MapPLZ.prototype.reverse_path(this.path[0])]
-    "POLYGON(())"
+    for p, pt in polypath
+      polypath[pt] = polypath[pt].join ' '
+    polypath = polypath.join ','
+    "POLYGON((#{polypath}))"
 
 MapItem.prototype.save = ->
   if this.database
     this.id = this.database.save(this)
 
 PostGIS = ->
-PostGIS.prototype.initialize = (client) ->
-  this.client = client
 PostGIS.prototype.save = (item) ->
-  this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT}')) RETURNING id", (err, result) ->
+  this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
     if err
-      err
+      console.error(err)
     else
-      result.rows[0].id
-PostGIS.prototype.count = (query) ->
+      item.id = result.rows[0].id
+PostGIS.prototype.count = (query, callback) ->
   this.client.query 'SELECT COUNT(*) AS count FROM mapplz', (err, result) ->
-    if err
-      err
-    else
-      result.rows[0].count
+    callback(err, result.rows[0].count || null)
+PostGIS.prototype.query = (query, callback) ->
+  this.client.query 'SELECT * FROM mapplz', (err, result) ->
+    callback(err, result.rows || null)
 
 if exports
   exports.MapPLZ = MapPLZ
