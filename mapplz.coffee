@@ -1,19 +1,30 @@
-
 MapPLZ = ->
 
-MapPLZ.prototype.add = (param1, param2, param3) ->
+MapPLZ.standardize = (geo, props) ->
+  result = new MapItem
+  if typeof geo.lat != "undefined" && typeof geo.lng != "undefined"
+    result.lat = geo.lat * 1
+    result.lng = geo.lng * 1
+  else if geo.path
+    result.path = geo.path
+  result.properties = props || {}
+  result
+
+MapPLZ.prototype.add = (param1, param2, param3, param4) ->
   this.mapitems = [] unless this.mapitems
-  this.dbtype = "array" unless this.dbtype
+  this.database = null unless this.database
+
+  callback = (err, items) ->
+  callback = param2 if typeof param2 == "function"
+  callback = param3 if typeof param3 == "function"
+  callback = param4 if typeof param4 == "function"
 
   # try for lat, lng point
   lat = param1 * 1
   lng = param2 * 1
   unless isNaN(lat) || isNaN(lng)
-    pt = new MapItem
-    pt.lat = lat
-    pt.lng = lng
+    pt = MapPLZ.standardize({ lat: lat, lng: lng })
     pt.type = "point"
-    pt.properties = {}
 
     if param3 != null
       # allow JSON string of properties
@@ -33,17 +44,17 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
         # string, number, or other singular property
         pt.properties = { property: param3 }
 
-    this.mapitems.push pt
-    return pt
+    this.save pt, callback
+    return
 
   if typeof param1 == 'string'
     # try JSON parse
     try
       param1 = JSON.parse param1
       if this.isGeoJson param1
-        result = this.addGeoJson param1
-        this.mapitems.push result
-        return result
+        result = this.addGeoJson param1, callback
+        this.save result, callback if result
+        return
     catch
 
   if this.isArray param1
@@ -53,11 +64,8 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       lat = param1[0] * 1
       lng = param1[1] * 1
       unless isNaN(lat) || isNaN(lng)
-        result = new MapItem
+        result = MapPLZ.standardize { lat: lat, lng: lng }
         result.type = 'point'
-        result.lat = lat
-        result.lng = lng
-        result.properties = {}
         for prop in param1.slice(2)
           if typeof prop == 'string'
             try
@@ -70,24 +78,20 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
           else
             result.properties = { property: prop }
 
-        this.mapitems.push result
-        return result
+        this.save result, callback
+        return
 
     if typeof param1[0] == 'object'
       if this.isArray param1[0]
         # param1 contains an array of arrays - probably coordinates
         if this.isArray param1[0][0]
           # polygon
-          result = new MapItem
+          result = MapPLZ.standardize({ path: param1 })
           result.type = 'polygon'
-          result.path = param1
-          result.properties = {}
         else
           # line
-          result = new MapItem
+          result = MapPLZ.standardize({ path: param1 })
           result.type = 'line'
-          result.path = param1
-          result.properties = {}
 
         if result && param2
           # try JSON parsing
@@ -103,55 +107,76 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
               result.properties = param2
           else
             result.properties = { property: param2 }
-        else
-          result.properties = {}
 
-        this.mapitems.push result
-        return result
+        this.save result, callback
+        return
       else
         # param1 contains an array of objects to add
         results = []
         for obj in param1
           results.push this.add(obj)
-        this.mapitems.concat results
-        return results
+        this.save results, callback
+        return
 
 
   else if typeof param1 == 'object'
     # regular object
     if param1.lat && param1.lng
-      result = new MapItem
+      result = MapPLZ.standardize({ lat: param1.lat, lng: param1.lng })
       result.type = "point"
-      result.lat = param1.lat * 1
-      result.lng = param1.lng * 1
-      result.properties = {}
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'lat' || key == 'lng'
-      this.mapitems.push result
-      return result
+      this.save result, callback
+      return
 
     else if param1.path
-      result = new MapItem
-      result.properties = {}
+      result = MapPLZ.standardize({ path: param1.path })
       if typeof param1.path[0][0] == 'object'
         result.type = 'polygon'
-        rings = param1.path
-        for ring in rings
-          ring = this.reverse_path(ring)
-        result.path = rings
       else
         result.type = 'line'
-        result.path = param1.path
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'path'
 
-      this.mapitems.push result
-      return result
+      this.save result, callback
+      return
 
     else if this.isGeoJson param1
-      results = this.addGeoJson param1
-      this.mapitems.concat results
-      return results
+      results = this.addGeoJson param1, callback
+      this.save results, callback if results
+      return
+
+MapPLZ.prototype.count = (query, callback) ->
+  if this.database
+    this.database.count(query, callback)
+  else
+    this.query query, (err, results) ->
+      callback(err, results.length)
+
+MapPLZ.prototype.query = (query, callback) ->
+  if this.database
+    this.database.query(query, callback)
+  else
+    callback(null, this.mapitems)
+
+MapPLZ.prototype.where = (query, callback) ->
+  return this.query(query, callback)
+
+MapPLZ.prototype.save = (items, callback) ->
+  if this.database
+    if this.isArray(items)
+      for item in items
+        item.database = this.database
+        item.save(callback)
+    else
+      items.database = this.database
+      items.save(callback)
+  else
+    if this.isArray(items)
+      this.mapitems.concat items
+    else
+      this.mapitems.push items
+    callback(null, items)
 
 MapPLZ.prototype.isArray = (inspect) ->
   return (typeof inspect == 'object' && typeof inspect.push == 'function')
@@ -160,32 +185,41 @@ MapPLZ.prototype.isGeoJson = (json) ->
   type = json.type
   return (type && (type == "Feature" || type == "FeatureCollection"))
 
-MapPLZ.prototype.addGeoJson = (gj) ->
-  results = []
+MapPLZ.prototype.addGeoJson = (gj, callback) ->
   if gj.type == "FeatureCollection"
-    for feature in gj.features
-      results.push this.add(feature)
-    results
+    results = []
+    that = this
+    iter_callback = (feature_index) ->
+      if feature_index < gj.features.length
+        feature = that.addGeoJson(gj.features[feature_index])
+        that.save feature, (err, saved) ->
+          results.push saved
+          iter_callback(feature_index + 1)
+      else
+        callback(null, results)
+    iter_callback(0)
 
   else if gj.type == "Feature"
-    result = new MapItem
     geom = gj.geometry
+    result = ""
     if geom.type == "Point"
+      result = MapPLZ.standardize({ lat: geom.coordinates[1], lng: geom.coordinates[0] })
       result.type = "point"
-      result.lat = geom.coordinates[1]
-      result.lng = geom.coordinates[0]
     else if geom.type == "LineString"
+      result = MapPLZ.standardize({ path: this.reverse_path(geom.coordinates) })
       result.type = "line"
-      result.path = this.reverse_path geom.coordinates
+    else if geom.type == "Polygon"
+      result = MapPLZ.standardize({ path: [this.reverse_path(geom.coordinates[0])] })
+      result.type = "polygon"
 
-    result.properties = gj.properties || null
+    result.properties = gj.properties || {}
     result
 
 MapPLZ.prototype.reverse_path = (path) ->
-  path_pts = path.slice 0
-  for pt in path_pts
-    pt.reverse
-  return path_pts
+  path_pts = path.slice(0)
+  for p, pt in path_pts
+    path_pts[pt] = path_pts[pt].slice(0).reverse()
+  path_pts
 
 MapItem = ->
 MapItem.prototype.toGeoJson = ->
@@ -197,8 +231,73 @@ MapItem.prototype.toGeoJson = ->
   else if this.type == 'polygon'
     polypath = [MapPLZ.prototype.reverse_path(this.path[0])]
     gj_geo = { type: "Polygon", coordinates: polypath }
+  JSON.stringify { type: "Feature", geometry: gj_geo, properties: this.properties }
 
-  JSON.parse { type: "Feature", geometry: gj_geo, properties: this.properties }
+MapItem.prototype.toWKT = ->
+  if this.type == "point"
+    "POINT(#{this.lng} #{this.lat})"
+  else if this.type == "line"
+    linepath = MapPLZ.prototype.reverse_path(this.path)
+    for p, pt in linepath
+      linepath[pt] = linepath[pt].join ' '
+    linepath = linepath.join ','
+    "LINESTRING(#{linepath})"
+  else if this.type == 'polygon'
+    polypath = [MapPLZ.prototype.reverse_path(this.path[0])]
+    for p, pt in polypath
+      polypath[pt] = polypath[pt].join ' '
+    polypath = polypath.join ','
+    "POLYGON((#{polypath}))"
+
+MapItem.prototype.save = (callback) ->
+  if this.database
+    my_mapitem = this
+    this.database.save(this, (err, id) ->
+      my_mapitem.id = id if id
+      callback(err, my_mapitem)
+    )
+  else
+    callback(null, this)
+
+PostGIS = ->
+PostGIS.prototype.save = (item, callback) ->
+  if item.id
+    this.client.query "UPDATE mapplz SET geom = ST_GeomFromText('#{item.toWKT()}'), properties = '#{JSON.stringify(item.properties)}' WHERE id = #{item.id * 1}", (err, result) ->
+      console.error err if err
+      callback(err, item.id)
+  else
+    this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
+      console.error err if err
+      callback(err, result.rows[0].id || null)
+PostGIS.prototype.count = (query, callback) ->
+  condition = "1=1"
+  if query && query.length
+    condition = query
+    where_prop = condition.trim().split(' ')[0]
+    condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
+
+  this.client.query "SELECT COUNT(*) AS count FROM mapplz WHERE #{condition}", (err, result) ->
+    callback(err, result.rows[0].count || null)
+PostGIS.prototype.query = (query, callback) ->
+  condition = "1=1"
+  if query && query.length
+    condition = query
+    where_prop = condition.trim().split(' ')[0]
+    condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
+
+  this.client.query "SELECT ST_AsGeoJSON(geom) AS geom, properties FROM mapplz WHERE #{condition}", (err, result) ->
+    if err
+      console.error err
+      callback(err, [])
+    else
+      results = []
+      for row in result.rows
+        geo = JSON.parse(row.geom)
+        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
+        results.push result
+      callback(err, results)
 
 if exports
   exports.MapPLZ = MapPLZ
+  exports.MapItem = MapItem
+  exports.PostGIS = PostGIS
