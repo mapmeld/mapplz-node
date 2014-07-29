@@ -9,7 +9,7 @@
     "postgis",
     "spatial"
   ],
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "mapmeld",
   "repository": {
     "type": "git",
@@ -34,7 +34,7 @@
   "scripts": {
     "test": "npm run test-coffeelint && npm run test-mocha",
     "test-mocha": "mocha --compilers coffee:coffee-script/register",
-    "test-coffeelint": "coffeelint -f test/coffeelint.json ./*.coffee"
+    "test-coffeelint": "coffeelint -f test/coffeelint.json ./*.coffee ./test/*.coffee"
   },
   "license": "FreeBSD"
 }

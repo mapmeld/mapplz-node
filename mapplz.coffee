@@ -290,6 +290,7 @@ PostGIS.prototype.count = (query, callback) ->
     callback(err, result.rows[0].count || null)
 PostGIS.prototype.query = (query, callback) ->
   condition = "1=1"
+  db = this
   if query && query.length
     condition = query
     where_prop = condition.trim().split(' ')[0]
@@ -304,6 +305,54 @@ PostGIS.prototype.query = (query, callback) ->
       for row in result.rows
         geo = JSON.parse(row.geom)
         result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
+        result.id = row.id
+        result.database = db
+        results.push result
+      callback(err, results)
+
+MongoDB = ->
+MongoDB.prototype.save = (item, callback) ->
+  saveobj = {}
+  saveobj = JSON.parse(JSON.stringify(item.properties)) if item.properties
+  saveobj.geom = JSON.parse(item.toGeoJson()).geometry
+  if item.id
+    saveobj._id = item.id
+    this.collection.save saveobj, (err) ->
+      console.error err if err
+      callback(err, item.id)
+  else
+    this.collection.insert saveobj, (err, results) ->
+      console.error err if err
+      result = results[0] || null
+      callback(err, result._id || null)
+
+MongoDB.prototype.count = (query, callback) ->
+  condition = query || {}
+  this.collection.find query, (err, cursor) ->
+    if err
+      console.error err
+      callback(err, null)
+    else
+      cursor.count (err, count) ->
+        callback(err, count || null)
+
+MongoDB.prototype.query = (query, callback) ->
+  condition = query || {}
+  db = this
+  this.collection.find(query).toArray (err, rows) ->
+    if err
+      console.error err
+      callback(err, [])
+    else
+      results = []
+      for row in rows
+        excluded = {}
+        for key of row
+          if key != "_id" && key != "geom"
+            excluded[key] = row[key]
+        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: row.geom, properties: excluded }
+        result.id = row._id
+        result.database = db
         results.push result
       callback(err, results)
 
@@ -311,3 +360,4 @@ if exports
   exports.MapPLZ = MapPLZ
   exports.MapItem = MapItem
   exports.PostGIS = PostGIS
+  exports.MongoDB = MongoDB
