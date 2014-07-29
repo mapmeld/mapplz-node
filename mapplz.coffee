@@ -251,15 +251,20 @@ MapItem.prototype.toWKT = ->
 
 MapItem.prototype.save = (callback) ->
   if this.database
+    my_mapitem = this
     this.database.save(this, (err, id) ->
-      this.id = id if id
-      callback(err, this)
+      my_mapitem.id = id if id
+      callback(err, my_mapitem)
     )
+  else
+    callback(null, this)
 
 PostGIS = ->
 PostGIS.prototype.save = (item, callback) ->
   if item.id
-    this.client.query "UPDATE mapplz SET geom = ST_GeomFromText('#{item.toWKT()}'), properties = '#{JSON.stringify(item.properties)}' WHERE id = #{item.id * 1}"
+    this.client.query "UPDATE mapplz SET geom = ST_GeomFromText('#{item.toWKT()}'), properties = '#{JSON.stringify(item.properties)}' WHERE id = #{item.id * 1}", (err, result) ->
+      console.error err if err
+      callback(err, item.id)
   else
     this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
       console.error err if err

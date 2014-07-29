@@ -28,10 +28,10 @@ describe 'queries db', ->
     connect ->
       assert.equal(mapstore.database == null, false)
       mapstore.add([0, 1], (err, pts) ->
-        mapstore.add([2, 3, 'hello world'], (err, pts2) ->
-          mapstore.add({ lat: 4, lng: 5, label: 'hello world' }, (err, pts3) ->
-            mapstore.add({ path: [[5, 10], [15, 20]], label: 'hello world' }, (err, lines) ->
-              assert.equal(lines[0].toWKT(), 'LINESTRING(10 5,20 15)')
+        mapstore.add([2, 3, 'hello world'], (err, pt) ->
+          mapstore.add({ lat: 4, lng: 5, label: 'hello world' }, (err, pt2) ->
+            mapstore.add({ path: [[5, 10], [15, 20]], label: 'hello world' }, (err, line) ->
+              assert.equal(line.toWKT(), 'LINESTRING(10 5,20 15)')
               mapstore.count(null, (err, count) ->
                 assert.equal(count, 4)
                 done()
@@ -44,8 +44,8 @@ describe 'queries db', ->
   it 'queries by property', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
-      mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pts) ->
-        mapstore.add({ lat: 2, lng: 3, color: 'red' }, (err, pts2) ->
+      mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pt) ->
+        mapstore.add({ lat: 2, lng: 3, color: 'red' }, (err, pt2) ->
           mapstore.query("color = 'blue'", (err, results) ->
             assert.equal(results.length, 1)
             assert.equal(results[0].properties.color, "blue")
@@ -57,8 +57,8 @@ describe 'queries db', ->
   it 'counts by property', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
-      mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pts) ->
-        mapstore.add({ lat: 2, lng: 3, color: 'red' }, (err, pts2) ->
+      mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pt) ->
+        mapstore.add({ lat: 2, lng: 3, color: 'red' }, (err, pt2) ->
           mapstore.count("color = 'blue'", (err, count) ->
             assert.equal(count, 1)
             done()
@@ -70,7 +70,7 @@ describe 'saves to db', ->
   it 'saves properties to db', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
-      mapstore.add({ lat: 2, lng: 3, label: 'hello world' }, (err, pts) ->
+      mapstore.add({ lat: 2, lng: 3, label: 'hello world' }, (err, pt) ->
         mapstore.query("", (err, results) ->
           firstpt = results[0]
           assert.equal(firstpt.lat, 2)
@@ -84,9 +84,9 @@ describe 'saves to db', ->
   it 'updates properties in db', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
-      mapstore.add({ lat: 2, lng: 3, label: 'hello' }, (err, pts) ->
-        pts[0].properties.label = 'world'
-        pts[0].save (err, pts2) ->
+      mapstore.add({ lat: 2, lng: 3, label: 'hello' }, (err, pt) ->
+        pt.properties.label = 'world'
+        pt.save (err, ptnew) ->
           mapstore.query("", (err, results) ->
             assert.equal(results.length, 1)
             assert.equal(results[0].properties.label, 'world')
@@ -97,9 +97,9 @@ describe 'saves to db', ->
   it 'updates locations in db', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
-      mapstore.add({ lat: 2, lng: 3 }, (err, pts) ->
-        pts[0].lat = 5
-        pts[0].save (err, pts2) ->
+      mapstore.add({ lat: 2, lng: 3 }, (err, pt) ->
+        pt.lat = 5
+        pt.save (err, ptnew) ->
           mapstore.query("", (err, results) ->
             assert.equal(results.length, 1)
             assert.equal(results[0].lat, 5)
