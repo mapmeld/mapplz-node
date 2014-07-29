@@ -259,14 +259,29 @@ MapItem.prototype.save = (callback) ->
 
 PostGIS = ->
 PostGIS.prototype.save = (item, callback) ->
-  this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
-    console.error err if err
-    callback(err, result.rows[0].id || null)
+  if item.id
+    this.client.query "UPDATE mapplz SET geom = ST_GeomFromText('#{item.toWKT()}'), properties = '#{JSON.stringify(item.properties)}' WHERE id = #{item.id * 1}"
+  else
+    this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
+      console.error err if err
+      callback(err, result.rows[0].id || null)
 PostGIS.prototype.count = (query, callback) ->
-  this.client.query 'SELECT COUNT(*) AS count FROM mapplz', (err, result) ->
+  condition = "1=1"
+  if query && query.length
+    condition = query
+    where_prop = condition.trim().split(' ')[0]
+    condition = condition.replace(new RegExP(where_prop, "gm"), "json_extract_path_text(properties, '#{where_prop}')")
+
+  this.client.query "SELECT COUNT(*) AS count FROM mapplz WHERE #{condition}", (err, result) ->
     callback(err, result.rows[0].count || null)
 PostGIS.prototype.query = (query, callback) ->
-  this.client.query 'SELECT ST_AsGeoJSON(geom) AS geom, properties FROM mapplz', (err, result) ->
+  condition = "1=1"
+  if query && query.length
+    condition = query
+    where_prop = condition.trim().split(' ')[0]
+    condition = condition.replace(new RegExP(where_prop, "gm"), "json_extract_path_text(properties, '#{where_prop}')")
+
+  this.client.query "SELECT ST_AsGeoJSON(geom) AS geom, properties FROM mapplz WHERE #{condition}", (err, result) ->
     if err
       console.error err
       callback(err, [])
