@@ -11,9 +11,14 @@ MapPLZ.prototype.standardize = (geo, props) ->
   result.properties = props || {}
   result
 
-MapPLZ.prototype.add = (param1, param2, param3) ->
+MapPLZ.prototype.add = (param1, param2, param3, param4) ->
   this.mapitems = [] unless this.mapitems
   this.database = null unless this.database
+
+  callback = (err, items) ->
+  callback = param2 if typeof param2 == "function"
+  callback = param3 if typeof param3 == "function"
+  callback = param4 if typeof param4 == "function"
 
   # try for lat, lng point
   lat = param1 * 1
@@ -40,17 +45,17 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
         # string, number, or other singular property
         pt.properties = { property: param3 }
 
-    this.save pt
-    return pt
+    this.save pt, callback
+    return
 
   if typeof param1 == 'string'
     # try JSON parse
     try
       param1 = JSON.parse param1
       if this.isGeoJson param1
-        result = this.addGeoJson param1
-        this.save result
-        return result
+        result = this.addGeoJson param1, callback
+        this.save result, callback if result
+        return
     catch
 
   if this.isArray param1
@@ -74,8 +79,8 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
           else
             result.properties = { property: prop }
 
-        this.save result
-        return result
+        this.save result, callback
+        return
 
     if typeof param1[0] == 'object'
       if this.isArray param1[0]
@@ -104,15 +109,15 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
           else
             result.properties = { property: param2 }
 
-        this.save result
-        return result
+        this.save result, callback
+        return
       else
         # param1 contains an array of objects to add
         results = []
         for obj in param1
           results.push this.add(obj)
-        this.save results
-        return results
+        this.save results, callback
+        return
 
 
   else if typeof param1 == 'object'
@@ -122,8 +127,8 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       result.type = "point"
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'lat' || key == 'lng'
-      this.save result
-      return result
+      this.save result, callback
+      return
 
     else if param1.path
       result = this.standardize({ path: param1.path })
@@ -134,13 +139,13 @@ MapPLZ.prototype.add = (param1, param2, param3) ->
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'path'
 
-      this.save result
-      return result
+      this.save result, callback
+      return
 
     else if this.isGeoJson param1
-      results = this.addGeoJson param1
-      this.save results
-      return results
+      results = this.addGeoJson param1, callback
+      this.save results, callback if results
+      return
 
 MapPLZ.prototype.count = (query, callback) ->
   if this.database
@@ -158,20 +163,21 @@ MapPLZ.prototype.query = (query, callback) ->
 MapPLZ.prototype.where = (query, callback) ->
   return this.query(query, callback)
 
-MapPLZ.prototype.save = (items) ->
+MapPLZ.prototype.save = (items, callback) ->
   if this.database
     if this.isArray(items)
       for item in items
         item.database = this.database
-        item.save()
+        item.save(callback)
     else
       items.database = this.database
-      items.save()
+      items.save(callback)
   else
     if this.isArray(items)
       this.mapitems.concat items
     else
       this.mapitems.push items
+    callback(null, items)
 
 MapPLZ.prototype.isArray = (inspect) ->
   return (typeof inspect == 'object' && typeof inspect.push == 'function')
@@ -180,12 +186,19 @@ MapPLZ.prototype.isGeoJson = (json) ->
   type = json.type
   return (type && (type == "Feature" || type == "FeatureCollection"))
 
-MapPLZ.prototype.addGeoJson = (gj) ->
-  results = []
+MapPLZ.prototype.addGeoJson = (gj, callback) ->
   if gj.type == "FeatureCollection"
-    for feature in gj.features
-      results.push this.add(feature)
-    results
+    results = []
+    that = this
+    iter_callback = (feature_index) ->
+      if feature_index < gj.features.length
+        feature = that.addGeoJson(gj.features[feature_index])
+        that.save feature, (err, saved) ->
+          results.push saved
+          iter_callback(feature_index + 1)
+      else
+        callback(null, results)
+    iter_callback(0)
 
   else if gj.type == "Feature"
     geom = gj.geometry
@@ -237,17 +250,18 @@ MapItem.prototype.toWKT = ->
     polypath = polypath.join ','
     "POLYGON((#{polypath}))"
 
-MapItem.prototype.save = ->
+MapItem.prototype.save = (callback) ->
   if this.database
-    this.id = this.database.save(this)
+    this.database.save(this, (err, id) ->
+      this.id = id if id
+      callback(err, this)
+    )
 
 PostGIS = ->
-PostGIS.prototype.save = (item) ->
+PostGIS.prototype.save = (item, callback) ->
   this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
-    if err
-      console.error err
-    else
-      item.id = result.rows[0].id
+    console.error err if err
+    callback(err, result.rows[0].id || null)
 PostGIS.prototype.count = (query, callback) ->
   this.client.query 'SELECT COUNT(*) AS count FROM mapplz', (err, result) ->
     callback(err, result.rows[0].count || null)

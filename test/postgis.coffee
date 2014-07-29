@@ -27,27 +27,31 @@ describe 'count', ->
   it 'adds four items', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
-      mapstore.add [0, 1]
-      mapstore.add [2, 3, 'hello world']
-      mapstore.add { lat: 4, lng: 5, label: 'hello world' }
-      line = mapstore.add { path: [[5, 10], [15, 20]], label: 'hello world' }
-      assert.equal(line.toWKT(), 'LINESTRING(10 5,20 15)')
-
-      mapstore.count(null, (err, count) ->
-        assert.equal(count, 4)
-        done()
+      mapstore.add([0, 1], (err, pt) ->
+        mapstore.add([2, 3, 'hello world'], (err, pt) ->
+          mapstore.add({ lat: 4, lng: 5, label: 'hello world' }, (err, pt) ->
+            mapstore.add({ path: [[5, 10], [15, 20]], label: 'hello world' }, (err, line) ->
+              assert.equal(line.toWKT(), 'LINESTRING(10 5,20 15)')
+              mapstore.count(null, (err, count) ->
+                assert.equal(count, 4)
+                done()
+              )
+            )
+          )
+        )
       )
 
 describe 'saves to db', ->
   it 'saves to db', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
-      mapstore.add { lat: 2, lng: 3, label: 'hello world' }
-      mapstore.query("", (err, results) ->
-        firstpt = results[0]
-        assert.equal(firstpt.lat, 2)
-        assert.equal(firstpt.lng, 3)
-        assert.equal(firstpt.type, 'point')
-        assert.equal(firstpt.properties.label, 'hello world')
-        done()
+      mapstore.add({ lat: 2, lng: 3, label: 'hello world' }, (err, pt) ->
+        mapstore.query("", (err, results) ->
+          firstpt = results[0]
+          assert.equal(firstpt.lat, 2)
+          assert.equal(firstpt.lng, 3)
+          assert.equal(firstpt.type, 'point')
+          assert.equal(firstpt.properties.label, 'hello world')
+          done()
+        )
       )
