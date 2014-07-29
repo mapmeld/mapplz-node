@@ -1,7 +1,6 @@
-
 MapPLZ = ->
 
-MapPLZ.prototype.standardize = (geo, props) ->
+MapPLZ.standardize = (geo, props) ->
   result = new MapItem
   if typeof geo.lat != "undefined" && typeof geo.lng != "undefined"
     result.lat = geo.lat * 1
@@ -24,7 +23,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
   lat = param1 * 1
   lng = param2 * 1
   unless isNaN(lat) || isNaN(lng)
-    pt = this.standardize({ lat: lat, lng: lng })
+    pt = MapPLZ.standardize({ lat: lat, lng: lng })
     pt.type = "point"
 
     if param3 != null
@@ -65,7 +64,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
       lat = param1[0] * 1
       lng = param1[1] * 1
       unless isNaN(lat) || isNaN(lng)
-        result = this.standardize { lat: lat, lng: lng }
+        result = MapPLZ.standardize { lat: lat, lng: lng }
         result.type = 'point'
         for prop in param1.slice(2)
           if typeof prop == 'string'
@@ -87,11 +86,11 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
         # param1 contains an array of arrays - probably coordinates
         if this.isArray param1[0][0]
           # polygon
-          result = this.standardize({ path: param1 })
+          result = MapPLZ.standardize({ path: param1 })
           result.type = 'polygon'
         else
           # line
-          result = this.standardize({ path: param1 })
+          result = MapPLZ.standardize({ path: param1 })
           result.type = 'line'
 
         if result && param2
@@ -123,7 +122,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
   else if typeof param1 == 'object'
     # regular object
     if param1.lat && param1.lng
-      result = this.standardize({ lat: param1.lat, lng: param1.lng })
+      result = MapPLZ.standardize({ lat: param1.lat, lng: param1.lng })
       result.type = "point"
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'lat' || key == 'lng'
@@ -131,7 +130,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
       return
 
     else if param1.path
-      result = this.standardize({ path: param1.path })
+      result = MapPLZ.standardize({ path: param1.path })
       if typeof param1.path[0][0] == 'object'
         result.type = 'polygon'
       else
@@ -204,13 +203,13 @@ MapPLZ.prototype.addGeoJson = (gj, callback) ->
     geom = gj.geometry
     result = ""
     if geom.type == "Point"
-      result = this.standardize({ lat: geom.coordinates[1], lng: geom.coordinates[0] })
+      result = MapPLZ.standardize({ lat: geom.coordinates[1], lng: geom.coordinates[0] })
       result.type = "point"
     else if geom.type == "LineString"
-      result = this.standardize({ path: this.reverse_path(geom.coordinates) })
+      result = MapPLZ.standardize({ path: this.reverse_path(geom.coordinates) })
       result.type = "line"
     else if geom.type == "Polygon"
-      result = this.standardize({ path: [this.reverse_path(geom.coordinates[0])] })
+      result = MapPLZ.standardize({ path: [this.reverse_path(geom.coordinates[0])] })
       result.type = "polygon"
 
     result.properties = gj.properties || {}
@@ -270,7 +269,7 @@ PostGIS.prototype.count = (query, callback) ->
   if query && query.length
     condition = query
     where_prop = condition.trim().split(' ')[0]
-    condition = condition.replace(new RegExP(where_prop, "gm"), "json_extract_path_text(properties, '#{where_prop}')")
+    condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
 
   this.client.query "SELECT COUNT(*) AS count FROM mapplz WHERE #{condition}", (err, result) ->
     callback(err, result.rows[0].count || null)
@@ -279,7 +278,7 @@ PostGIS.prototype.query = (query, callback) ->
   if query && query.length
     condition = query
     where_prop = condition.trim().split(' ')[0]
-    condition = condition.replace(new RegExP(where_prop, "gm"), "json_extract_path_text(properties, '#{where_prop}')")
+    condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
 
   this.client.query "SELECT ST_AsGeoJSON(geom) AS geom, properties FROM mapplz WHERE #{condition}", (err, result) ->
     if err
