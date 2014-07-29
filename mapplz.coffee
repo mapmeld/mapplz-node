@@ -40,7 +40,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
         # object
         for key in Object.keys(param3)
           pt.properties[key] = param3[key]
-      else
+      else if typeof param3 != 'function'
         # string, number, or other singular property
         pt.properties = { property: param3 }
 
@@ -75,7 +75,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
           if typeof prop == 'object'
             for key in Object.keys(prop)
               result.properties[key] = prop[key]
-          else
+          else if typeof prop != 'function'
             result.properties = { property: prop }
 
         this.save result, callback
@@ -105,7 +105,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
               result.properties = { property: param2 }
             else
               result.properties = param2
-          else
+          else if typeof param2 != 'function'
             result.properties = { property: param2 }
 
         this.save result, callback
@@ -162,11 +162,12 @@ MapPLZ.prototype.query = (query, callback) ->
     else
       results = []
       for mapitem in this.mapitems
-        match = true
-        for key of query
-          match = (mapitem.properties[key] == query[key])
-          break unless match
-        results.push mapitem if match
+        if mapitem && mapitem.type != "deleted"
+          match = true
+          for key of query
+            match = (mapitem.properties[key] == query[key])
+            break unless match
+          results.push mapitem if match
       callback(null, results)
 
 MapPLZ.prototype.where = (query, callback) ->
@@ -183,8 +184,11 @@ MapPLZ.prototype.save = (items, callback) ->
       items.save(callback)
   else
     if this.isArray(items)
+      for item in items
+        item.mapitems = this.mapitems
       this.mapitems.concat items
     else
+      items.mapitems = this.mapitems
       this.mapitems.push items
     callback(null, items)
 
@@ -231,6 +235,8 @@ MapPLZ.prototype.reverse_path = (path) ->
     path_pts[pt] = path_pts[pt].slice(0).reverse()
   path_pts
 
+## MapPLZ data is returned as MapItems
+
 MapItem = ->
 MapItem.prototype.toGeoJson = ->
   if this.type == "point"
@@ -262,12 +268,26 @@ MapItem.prototype.toWKT = ->
 MapItem.prototype.save = (callback) ->
   if this.database
     my_mapitem = this
-    this.database.save(this, (err, id) ->
+    this.database.save this, (err, id) ->
       my_mapitem.id = id if id
       callback(err, my_mapitem)
-    )
   else
     callback(null, this)
+
+MapItem.prototype.delete = (callback) ->
+  if this.database
+    my_mapitem = this
+    this.database.delete this, (err) ->
+      callback(err)
+  else
+    if this.mapitems.indexOf(this) > -1
+      this.mapitems.splice(this.mapitems.indexOf(this), 1)
+    this.type = "deleted"
+    callback(null)
+
+## Database Drivers
+
+## PostGIS Database Driver
 
 PostGIS = ->
 PostGIS.prototype.save = (item, callback) ->
@@ -279,6 +299,12 @@ PostGIS.prototype.save = (item, callback) ->
     this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
       console.error err if err
       callback(err, result.rows[0].id || null)
+
+PostGIS.prototype.delete = (item, callback) ->
+  this.client.query "DELETE FROM mapplz WHERE id = #{item.id * 1}", (err) ->
+    item = null
+    callback(err)
+
 PostGIS.prototype.count = (query, callback) ->
   condition = "1=1"
   if query && query.length
@@ -288,6 +314,7 @@ PostGIS.prototype.count = (query, callback) ->
 
   this.client.query "SELECT COUNT(*) AS count FROM mapplz WHERE #{condition}", (err, result) ->
     callback(err, result.rows[0].count || null)
+
 PostGIS.prototype.query = (query, callback) ->
   condition = "1=1"
   db = this
@@ -310,6 +337,8 @@ PostGIS.prototype.query = (query, callback) ->
         results.push result
       callback(err, results)
 
+## MongoDB Database Driver
+
 MongoDB = ->
 MongoDB.prototype.save = (item, callback) ->
   saveobj = {}
@@ -326,6 +355,11 @@ MongoDB.prototype.save = (item, callback) ->
       result = results[0] || null
       callback(err, result._id || null)
 
+MongoDB.prototype.delete = (item, callback) ->
+  this.collection.remove { _id: item.id }, (err) ->
+    item = null
+    callback(err)
+
 MongoDB.prototype.count = (query, callback) ->
   condition = query || {}
   this.collection.find query, (err, cursor) ->
@@ -334,7 +368,7 @@ MongoDB.prototype.count = (query, callback) ->
       callback(err, null)
     else
       cursor.count (err, count) ->
-        callback(err, count || null)
+        callback(err, count || 0)
 
 MongoDB.prototype.query = (query, callback) ->
   condition = query || {}
@@ -355,6 +389,8 @@ MongoDB.prototype.query = (query, callback) ->
         result.database = db
         results.push result
       callback(err, results)
+
+## get it working with Node.js!
 
 if exports
   exports.MapPLZ = MapPLZ

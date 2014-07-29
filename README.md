@@ -13,7 +13,7 @@ it into a database.
 Adding some data:
 
 ```
-var MapPLZ = require('../mapplz').MapPLZ;
+var MapPLZ = require('mapplz').MapPLZ;
 var mapstore = new MapPLZ();
 
 mapstore = new MapPLZ();
@@ -65,6 +65,11 @@ function UsePtAndLine(pt, line) {
   line.type == "line"
   line.path == [[40, -70], [50, 20]]
   line.properties.color == "red"
+
+  pt.delete();
+  line.delete(function(err){
+    // line is now deleted
+  });
 }
 ```
 

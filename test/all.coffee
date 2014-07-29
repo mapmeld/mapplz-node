@@ -216,6 +216,17 @@ describe('queries', ->
     )
   )
 
+  it('deletes a point', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add(40, -70, (err, pt) ->
+      pt.delete ->
+        mapstore.count(null, (err, count) ->
+          assert.equal(count, 0)
+          done()
+        )
+    )
+  )
+
   it 'queries by property', (done) ->
     mapstore = new MapPLZ
     mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pt) ->

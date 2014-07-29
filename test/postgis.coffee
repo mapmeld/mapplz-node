@@ -41,6 +41,16 @@ describe 'queries db', ->
         )
       )
 
+  it 'deletes a point', (done) ->
+    connect ->
+      mapstore.add(40, -70, (err, pt) ->
+        pt.delete ->
+          mapstore.count(null, (err, count) ->
+            assert.equal(count, 0)
+            done()
+          )
+      )
+
   it 'queries by property', (done) ->
     connect ->
       assert.equal(mapstore.database == null, false)
