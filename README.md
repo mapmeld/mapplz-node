@@ -97,12 +97,14 @@ mapstore.count("color = 'blue'", function(err, count) {
 mapstore.query("color = 'blue'", function(err, blue_mapitems) {
   blue_mapitems == [ MapItem ];
 });
+
+// coming soon! simple near-point and within-polygon queries
 ```
 
 ### Setting up PostGIS
 ```
 var pg = require('pg');
-var MapPLZ = require('../mapplz');
+var MapPLZ = require('mapplz');
 
 var mapstore = new MapPLZ.MapPLZ();
 var connString = "postgres://postgres:@localhost/travis_postgis";
@@ -112,6 +114,22 @@ pg.connect(connString, function(err, client, done) {
     mapstore.database = new MapPLZ.PostGIS();
     mapstore.database.client = client;
   }
+});
+```
+
+### Setting up MongoDB
+```
+var MongoClient = require('mongodb').MongoClient;
+var MapPLZ = require('mapplz');
+
+var mapstore = new MapPLZ.MapPLZ();
+var connString = "mongodb://localhost:27017/sample";
+
+MongoClient.connect(connString, function(err, db) {
+  db.collection('mapplz', function(err, collection) {
+    mapstore.database = new MapPLZ.MongoDB();
+    mapstore.database.collection = collection;
+  });
 });
 ```
 
