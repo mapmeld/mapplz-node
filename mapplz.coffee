@@ -157,10 +157,20 @@ MapPLZ.prototype.query = (query, callback) ->
   if this.database
     this.database.query(query, callback)
   else
-    callback(null, this.mapitems)
+    if query == null || query == ""
+      callback(null, this.mapitems)
+    else
+      results = []
+      for mapitem in this.mapitems
+        match = true
+        for key of query
+          match = (mapitem.properties[key] == query[key])
+          break unless match
+        results.push mapitem if match
+      callback(null, results)
 
 MapPLZ.prototype.where = (query, callback) ->
-  return this.query(query, callback)
+  this.query(query, callback)
 
 MapPLZ.prototype.save = (items, callback) ->
   if this.database

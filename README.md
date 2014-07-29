@@ -68,25 +68,51 @@ function UsePtAndLine(pt, line) {
 }
 ```
 
-You can run several queries on the data, asynchronously:
+## Queries
+
+You don't need a database to query data with MapPLZ, but you're welcome to use Postgres/PostGIS or MongoDB.
+
+MapPLZ simplifies geodata management and queries:
 
 ```
-mapstore.count(null, function(err, count) {
-  // count == 2
+mapstore.count("", function(err, count) {
+  // count all, return integer
 });
+mapstore.query("", function(err, all_mapitems) {
+  // query all, return [ MapItem ]
+});
+
+// without a DB or with MongoDB
+mapstore.count({ color: "blue" }, function(err, count) {
+  // count == 1
+});
+mapstore.query({ color: "blue" }, function(err, blue_mapitems) {
+  blue_mapitems == [ MapItem ];
+});
+
+// with PostGIS
 mapstore.count("color = 'blue'", function(err, count) {
   // count == 1
 });
+mapstore.query("color = 'blue'", function(err, blue_mapitems) {
+  blue_mapitems == [ MapItem ];
+});
 ```
-
-## Databases
-
-If you want to store geodata in a database, you can use Postgres/PostGIS or MongoDB.
-
-MapPLZ simplifies geodata management and queries.
 
 ### Setting up PostGIS
 ```
+var pg = require('pg');
+var MapPLZ = require('../mapplz');
+
+var mapstore = new MapPLZ.MapPLZ();
+var connString = "postgres://postgres:@localhost/travis_postgis";
+
+pg.connect(connString, function(err, client, done) {
+  if(!err) {
+    mapstore.database = new MapPLZ.PostGIS();
+    mapstore.database.client = client;
+  }
+});
 ```
 
 ## License

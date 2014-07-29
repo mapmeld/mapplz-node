@@ -215,4 +215,27 @@ describe('queries', ->
       done()
     )
   )
+
+  it 'queries by property', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pt) ->
+      mapstore.add({ lat: 2, lng: 3, color: 'red' }, (err, pt2) ->
+        mapstore.query({ color: 'blue' }, (err, results) ->
+          assert.equal(results.length, 1)
+          assert.equal(results[0].properties.color, "blue")
+          done()
+        )
+      )
+    )
+
+  it 'counts by property', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pt) ->
+      mapstore.add({ lat: 2, lng: 3, color: 'red' }, (err, pt2) ->
+        mapstore.count({ color: 'blue' }, (err, count) ->
+          assert.equal(count, 1)
+          done()
+        )
+      )
+    )
 )
