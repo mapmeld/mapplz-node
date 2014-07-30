@@ -31,7 +31,7 @@ describe 'queries db', ->
         mapstore.add([2, 3, 'hello world'], (err, pt) ->
           mapstore.add({ lat: 4, lng: 5, label: 'hello world' }, (err, pt2) ->
             mapstore.add({ path: [[5, 10], [15, 20]], label: 'hello world' }, (err, line) ->
-              assert.equal(line.toWKT(), 'LINESTRING(10 5,20 15)')
+              assert.equal(line.toWKT(), 'LINESTRING(10 5, 20 15)')
               mapstore.count(null, (err, count) ->
                 assert.equal(count, 4)
                 done()

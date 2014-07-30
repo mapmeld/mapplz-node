@@ -311,13 +311,13 @@ MapItem.prototype.toWKT = ->
     linepath = MapPLZ.reverse_path(this.path)
     for p, pt in linepath
       linepath[pt] = linepath[pt].join ' '
-    linepath = linepath.join ','
+    linepath = linepath.join ', '
     "LINESTRING(#{linepath})"
   else if this.type == 'polygon'
-    polypath = [MapPLZ.reverse_path(this.path[0])]
+    polypath = MapPLZ.reverse_path(this.path[0])
     for p, pt in polypath
       polypath[pt] = polypath[pt].join ' '
-    polypath = polypath.join ','
+    polypath = polypath.join ', '
     "POLYGON((#{polypath}))"
 
 MapItem.prototype.save = (callback) ->
@@ -391,6 +391,20 @@ PostGIS.prototype.count = (query, callback) ->
   this.client.query "SELECT COUNT(*) AS count FROM mapplz WHERE #{condition}", (err, result) ->
     callback(err, result.rows[0].count || null)
 
+PostGIS.prototype.processResults = (err, db, result, callback) ->
+  if err
+    console.error err
+    callback(err, [])
+  else
+    results = []
+    for row in result.rows
+      geo = JSON.parse(row.geo)
+      result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
+      result.id = row.id
+      result.database = db
+      results.push result
+    callback(err, results)
+
 PostGIS.prototype.query = (query, callback) ->
   condition = "1=1"
   db = this
@@ -399,27 +413,18 @@ PostGIS.prototype.query = (query, callback) ->
     where_prop = condition.trim().split(' ')[0]
     condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
 
-  this.client.query "SELECT ST_AsGeoJSON(geom) AS geom, properties FROM mapplz WHERE #{condition}", (err, result) ->
-    if err
-      console.error err
-      callback(err, [])
-    else
-      results = []
-      for row in result.rows
-        geo = JSON.parse(row.geom)
-        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
-        result.id = row.id
-        result.database = db
-        results.push result
-      callback(err, results)
+  this.client.query "SELECT ST_AsGeoJSON(geom) AS geo, properties FROM mapplz WHERE #{condition}", (err, result) ->
+    db.processResults(err, db, result, callback)
 
 PostGIS.prototype.near = (nearpt, count, callback) ->
-  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geom, properties, ST_Distance(start.geom::geography, ST_GeomFromText('#{nearpt.toWKT()}')::geography) AS distance FROM mapplz AS start ORDER BY distance LIMIT #{count}", (err, results) ->
-    callback(err, results || [])
+  db = this
+  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geo, properties, ST_Distance(start.geom::geography, ST_GeomFromText('#{nearpt.toWKT()}')::geography) AS distance FROM mapplz AS start ORDER BY distance LIMIT #{count}", (err, results) ->
+    db.processResults(err, db, results, callback)
 
 PostGIS.prototype.inside = (withinpoly, callback) ->
-  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geom, properties FROM mapplz AS start WHERE ST_Contains(ST_GeomFromText('#{withinpoly.toWKT()}'), start.geom)", (err, results) ->
-    callback(err, results || [])
+  db = this
+  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geo, properties FROM mapplz AS start WHERE ST_Contains(ST_GeomFromText('#{withinpoly.toWKT()}'), start.geom)", (err, results) ->
+    db.processResults(err, db, results, callback)
 
 ## MongoDB Database Driver
 
