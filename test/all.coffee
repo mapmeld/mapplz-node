@@ -216,6 +216,17 @@ describe('queries', ->
     )
   )
 
+  it('deletes a point', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add(40, -70, (err, pt) ->
+      pt.delete ->
+        mapstore.count(null, (err, count) ->
+          assert.equal(count, 0)
+          done()
+        )
+    )
+  )
+
   it 'queries by property', (done) ->
     mapstore = new MapPLZ
     mapstore.add({ lat: 2, lng: 3, color: 'blue' }, (err, pt) ->
@@ -238,4 +249,26 @@ describe('queries', ->
         )
       )
     )
+
+  it 'finds nearest point', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+      mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+        mapstore.near [30, -60], 1, (err, nearest) ->
+          assert.equal(nearest.length, 1)
+          response = nearest[0]
+          assert.equal(response.lat, 40)
+          assert.equal(response.lng, -70)
+          done()
+
+  it 'finds point in polygon', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+      mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+        mapstore.inside [[[38, -72], [38, -68], [42, -68], [42, -72], [38, -72]]], (err, within) ->
+          assert.equal(within.length, 1)
+          nearest = within[0]
+          assert.equal(nearest.lat, 40)
+          assert.equal(nearest.lng, -70)
+          done()
 )

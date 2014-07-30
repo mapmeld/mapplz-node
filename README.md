@@ -13,7 +13,7 @@ it into a database.
 Adding some data:
 
 ```
-var MapPLZ = require('../mapplz').MapPLZ;
+var MapPLZ = require('mapplz').MapPLZ;
 var mapstore = new MapPLZ();
 
 mapstore = new MapPLZ();
@@ -65,6 +65,11 @@ function UsePtAndLine(pt, line) {
   line.type == "line"
   line.path == [[40, -70], [50, 20]]
   line.properties.color == "red"
+
+  pt.delete();
+  line.delete(function(err){
+    // line is now deleted
+  });
 }
 ```
 
@@ -80,6 +85,14 @@ mapstore.count("", function(err, count) {
 });
 mapstore.query("", function(err, all_mapitems) {
   // query all, return [ MapItem ]
+});
+mapstore.near([lat, lng], 5, function(err, nearest) {
+  // five nearest
+  // can also send GeoJSON, { lat: Number, lng: Number }, or MapItem
+});
+mapstore.within([[[40, -70], [50, -80], [30, -80], [40, -70]]], function(err, within) {
+  // all points within this polygon
+  // can also send GeoJSON, { path: [[[]]] }, or MapItem
 });
 
 // without a DB or with MongoDB
@@ -132,6 +145,15 @@ MongoClient.connect(connString, function(err, db) {
   });
 });
 ```
+
+## Dependencies
+
+All are installed when you run ```npm install mapplz```
+
+* <a href="http://coffeescript.org/">coffee-script</a> (MIT license)
+* <a href="https://github.com/manuelbieh/Geolib">geolib</a> (MIT license)
+* <a href="https://github.com/brianc/node-postgres">node-postgres</a> (BSD license)
+* <a href="http://mongodb.github.io/node-mongodb-native/">node-mongodb-native</a> (Apache license)
 
 ## License
 

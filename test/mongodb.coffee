@@ -29,10 +29,16 @@ connect = (callback) ->
             if err
               console.error 'collection clear error'
               assert.equal(err, null)
-            mapstore.database = new MapPLZ.MongoDB
-            mapstore.database.collection = collection
-            collected = collection
-            callback()
+
+            collection.ensureIndex { geo: "2dsphere" }, (err) ->
+              if err
+                console.error 'index error'
+                assert.equal(err, null)
+
+              mapstore.database = new MapPLZ.MongoDB
+              mapstore.database.collection = collection
+              collected = collection
+              callback()
 
 describe 'queries db', ->
   it 'returns count', (done) ->
@@ -42,7 +48,7 @@ describe 'queries db', ->
         mapstore.add([2, 3, 'hello world'], (err, pt2) ->
           mapstore.add({ lat: 4, lng: 5, label: 'hello world' }, (err, pt3) ->
             mapstore.add({ path: [[5, 10], [15, 20]], label: 'hello world' }, (err, line) ->
-              assert.equal(line.toWKT(), 'LINESTRING(10 5,20 15)')
+              assert.equal(line.toWKT(), 'LINESTRING(10 5, 20 15)')
               mapstore.count("", (err, count) ->
                 assert.equal(count, 4)
                 done()
@@ -50,6 +56,17 @@ describe 'queries db', ->
             )
           )
         )
+      )
+
+  it 'deletes a point', (done) ->
+    connect ->
+      mapstore.add(40, -70, (err, pt) ->
+        pt.delete ->
+          mapstore.count(null, (err, count) ->
+            assert.equal(err, null)
+            assert.equal(count, 0)
+            done()
+          )
       )
 
   it 'queries by property', (done) ->
@@ -76,6 +93,28 @@ describe 'queries db', ->
           )
         )
       )
+
+  it 'finds nearest point', (done) ->
+    connect ->
+      mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+        mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+          mapstore.near [30, -60], 1, (err, nearest) ->
+            assert.equal(nearest.length, 1)
+            response = nearest[0]
+            assert.equal(response.lat, 40)
+            assert.equal(response.lng, -70)
+            done()
+
+  it 'finds point in polygon', (done) ->
+    connect ->
+      mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+        mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+          mapstore.inside [[[38, -72], [38, -68], [42, -68], [42, -72], [38, -72]]], (err, within) ->
+            assert.equal(within.length, 1)
+            response = within[0]
+            assert.equal(response.lat, 40)
+            assert.equal(response.lng, -70)
+            done()
 
 describe 'saves to db', ->
   it 'saves properties to db', (done) ->
