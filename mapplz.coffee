@@ -1,3 +1,5 @@
+geolib = require 'geolib'
+
 MapPLZ = ->
 
 MapPLZ.standardize = (geo, props) ->
@@ -173,6 +175,59 @@ MapPLZ.prototype.query = (query, callback) ->
 MapPLZ.prototype.where = (query, callback) ->
   this.query(query, callback)
 
+MapPLZ.prototype.near = (neargeo, count, callback) ->
+  nearpt = neargeo
+  if this.isArray(neargeo)
+    nearpt = new MapItem
+    nearpt.type = "point"
+    nearpt.lat = neargeo[0]
+    nearpt.lng = neargeo[1]
+  else
+    if typeof neargeo == 'string'
+      neargeo = JSON.parse(neargeo)
+    unless typeof neargeo.lat == "undefined" && typeof neargeo.lng == "undefined"
+      nearpt = this.addGeoJson(neargeo)
+
+  if this.database
+    this.database.near(nearpt, count, callback)
+  else
+    this.query "", (err, items) ->
+      centerpts = []
+      for item in items
+        center = item.center()
+        centerpts.push { latitude: center.lat, longitude: center.lng }
+      centerpts = geolib.orderByDistance({ latitude: nearpt.lat, longitude: nearpt.lng }, centerpts)
+      for pt, p in centerpts
+        centerpts[p] = items[p]
+        break if p >= count
+      callback(null, centerpts.slice(0, count))
+
+MapPLZ.prototype.inside = (withingeo, callback) ->
+  withinpoly = withingeo
+  if this.isArray(withingeo)
+    withinpoly = new MapItem
+    withinpoly.type = "polygon"
+    withinpoly.path = withingeo
+  else
+    if typeof withingeo == 'string'
+      withingeo = JSON.parse(withingeo)
+    unless withingeo.path
+      withinpoly = this.addGeoJson(withingeo)
+
+  if this.database
+    this.database.inside(withinpoly, callback)
+  else
+    this.query "", (err, items) ->
+      withinpoly = withinpoly.path[0]
+      for pt, p in withinpoly
+        withinpoly[p] = { latitude: pt[0], longitude: pt[1] }
+      results = []
+      for item in items
+        center = item.center()
+        if geolib.isPointInside({ latitude: center.lat, longitude: center.lng }, withinpoly)
+          results.push item
+      callback(null, results)
+
 MapPLZ.prototype.save = (items, callback) ->
   if this.database
     if this.isArray(items)
@@ -229,7 +284,7 @@ MapPLZ.prototype.addGeoJson = (gj, callback) ->
     result.properties = gj.properties || {}
     result
 
-MapPLZ.prototype.reverse_path = (path) ->
+MapPLZ.reverse_path = (path) ->
   path_pts = path.slice(0)
   for p, pt in path_pts
     path_pts[pt] = path_pts[pt].slice(0).reverse()
@@ -242,10 +297,10 @@ MapItem.prototype.toGeoJson = ->
   if this.type == "point"
     gj_geo = { type: "Point", coordinates: [this.lng, this.lat] }
   else if this.type == "line"
-    linepath = MapPLZ.prototype.reverse_path(this.path)
+    linepath = MapPLZ.reverse_path(this.path)
     gj_geo = { type: "LineString", coordinates: linepath }
   else if this.type == 'polygon'
-    polypath = [MapPLZ.prototype.reverse_path(this.path[0])]
+    polypath = [MapPLZ.reverse_path(this.path[0])]
     gj_geo = { type: "Polygon", coordinates: polypath }
   JSON.stringify { type: "Feature", geometry: gj_geo, properties: this.properties }
 
@@ -253,13 +308,13 @@ MapItem.prototype.toWKT = ->
   if this.type == "point"
     "POINT(#{this.lng} #{this.lat})"
   else if this.type == "line"
-    linepath = MapPLZ.prototype.reverse_path(this.path)
+    linepath = MapPLZ.reverse_path(this.path)
     for p, pt in linepath
       linepath[pt] = linepath[pt].join ' '
     linepath = linepath.join ','
     "LINESTRING(#{linepath})"
   else if this.type == 'polygon'
-    polypath = [MapPLZ.prototype.reverse_path(this.path[0])]
+    polypath = [MapPLZ.reverse_path(this.path[0])]
     for p, pt in polypath
       polypath[pt] = polypath[pt].join ' '
     polypath = polypath.join ','
@@ -284,6 +339,27 @@ MapItem.prototype.delete = (callback) ->
       this.mapitems.splice(this.mapitems.indexOf(this), 1)
     this.type = "deleted"
     callback(null)
+
+MapItem.prototype.center = ->
+  if this.type == "point"
+    { lat: this.lat, lng: this.lng }
+  else if this.type == "line"
+    avg = { lat: 0, lng: 0 }
+    for pt in this.path
+      avg.lat += pt[0]
+      avg.lng += pt[1]
+    avg.lat /= this.path.length
+    avg.lng /= this.path.length
+    avg
+  else if this.type == "polygon"
+    avg = { lat: 0, lng: 0 }
+    for pt in this.path[0]
+      avg.lat += pt[0]
+      avg.lng += pt[1]
+    avg.lat /= this.path[0].length
+    avg.lng /= this.path[0].length
+    avg
+
 
 ## Database Drivers
 
@@ -337,13 +413,21 @@ PostGIS.prototype.query = (query, callback) ->
         results.push result
       callback(err, results)
 
+PostGIS.prototype.near = (nearpt, count, callback) ->
+  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geom, properties, ST_Distance(start.geom::geography, ST_GeomFromText('#{nearpt.toWKT()}')::geography) AS distance FROM mapplz AS start ORDER BY distance LIMIT #{count}", (err, results) ->
+    callback(err, results || [])
+
+PostGIS.prototype.inside = (withinpoly, callback) ->
+  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geom, properties FROM mapplz AS start WHERE ST_Contains(ST_GeomFromText('#{withinpoly.toWKT()}'), start.geom)", (err, results) ->
+    callback(err, results || [])
+
 ## MongoDB Database Driver
 
 MongoDB = ->
 MongoDB.prototype.save = (item, callback) ->
   saveobj = {}
   saveobj = JSON.parse(JSON.stringify(item.properties)) if item.properties
-  saveobj.geom = JSON.parse(item.toGeoJson()).geometry
+  saveobj.geo = JSON.parse(item.toGeoJson()).geometry
   if item.id
     saveobj._id = item.id
     this.collection.save saveobj, (err) ->
@@ -384,11 +468,34 @@ MongoDB.prototype.query = (query, callback) ->
         for key of row
           if key != "_id" && key != "geom"
             excluded[key] = row[key]
-        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: row.geom, properties: excluded }
+        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: row.geo, properties: excluded }
         result.id = row._id
         result.database = db
         results.push result
       callback(err, results)
+
+MongoDB.prototype.near = (nearpt, count, callback) ->
+  max = 40010000000
+  nearquery = {
+    geo: {
+      $nearSphere: {
+        $geometry: JSON.parse(nearpt.toGeoJson()).geometry,
+      }
+    }
+  }
+
+  this.query nearquery, (err, results) ->
+    callback(err, (results || []).slice(0, count))
+
+MongoDB.prototype.inside = (withinpoly, callback) ->
+  withinquery = {
+    geo: {
+      $geoWithin: {
+        $geometry: JSON.parse(withinpoly.toGeoJson()).geometry
+      }
+    }
+  }
+  this.query withinquery, callback
 
 ## get it working with Node.js!
 

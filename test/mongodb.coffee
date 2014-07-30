@@ -29,10 +29,16 @@ connect = (callback) ->
             if err
               console.error 'collection clear error'
               assert.equal(err, null)
-            mapstore.database = new MapPLZ.MongoDB
-            mapstore.database.collection = collection
-            collected = collection
-            callback()
+
+            collection.ensureIndex { geo: "2dsphere" }, (err) ->
+              if err
+                console.error 'index error'
+                assert.equal(err, null)
+
+              mapstore.database = new MapPLZ.MongoDB
+              mapstore.database.collection = collection
+              collected = collection
+              callback()
 
 describe 'queries db', ->
   it 'returns count', (done) ->
@@ -87,6 +93,28 @@ describe 'queries db', ->
           )
         )
       )
+
+  it 'finds nearest point', (done) ->
+    connect ->
+      mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+        mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+          mapstore.near [30, -60], 1, (err, nearest) ->
+            assert.equal(nearest.length, 1)
+            response = nearest[0]
+            assert.equal(response.lat, 40)
+            assert.equal(response.lng, -70)
+            done()
+
+  it 'finds point in polygon', (done) ->
+    connect ->
+      mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+        mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+          mapstore.inside [[[38, -72], [38, -68], [42, -68], [42, -72], [38, -72]]], (err, within) ->
+            assert.equal(within.length, 1)
+            response = within[0]
+            assert.equal(response.lat, 40)
+            assert.equal(response.lng, -70)
+            done()
 
 describe 'saves to db', ->
   it 'saves properties to db', (done) ->

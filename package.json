@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "coffee-script": "1.7.x",
+    "geolib": "2.0.x",
     "pg": "3.4.x",
     "mongodb": "1.4.x"
   },
@@ -28,8 +29,8 @@
     "supertest": "0.12.x"
   },
   "engines": {
-    "node": "0.10.x",
-    "npm": "1.2.x"
+    "node": ">= 0.10.x",
+    "npm": ">= 1.2.x"
   },
   "scripts": {
     "test": "npm run test-coffeelint && npm run test-mocha",
