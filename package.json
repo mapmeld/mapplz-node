@@ -19,7 +19,8 @@
     "coffee-script": "1.7.x",
     "geolib": "2.0.x",
     "pg": "3.4.x",
-    "mongodb": "1.4.x"
+    "mongodb": "1.4.x",
+    "fast-csv": "0.4.x"
   },
   "devDependencies": {
     "coffeelint": "1.5.x",

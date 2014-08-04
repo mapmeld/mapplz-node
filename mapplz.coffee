@@ -1,4 +1,5 @@
 geolib = require 'geolib'
+csv = require 'fast-csv'
 
 MapPLZ = ->
 
@@ -58,6 +59,42 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
         this.save result, callback if result
         return
     catch
+      if param1[param1.length-1] == ')' && (param1.indexOf 'POINT' == 0 || param1.indexOf 'LINESTRING' == 0 || param1.indexOf 'POLYGON' == 0)
+        # try WKT
+        contents = ''
+        if param1.indexOf('POINT') == 0
+          contents = param1.replace('POINT', '').replace('(', '').replace(')', '').trim().split(' ').reverse()
+        else if param1.indexOf('LINESTRING') == 0
+          pts = param1.replace('LINESTRING', '').replace('(', '').replace(')', '').split(',')
+          contents = []
+          for pt in pts
+            contents.push pt.trim().split(' ').reverse()
+        else if param1.indexOf('POLYGON') == 0
+          pts = param1.replace('POLYGON', '').replace('(', '').replace(')', '').replace('(', '').replace(')', '').split(',')
+          contents = []
+          for pt in pts
+            contents.push pt.trim().split(' ').reverse()
+
+        this.add contents, param2 || callback, callback
+        return
+      else
+        # try CSV
+        callbacks = 0
+        contents = []
+        mapstore = this
+        csv.fromString(param1, { headers: true })
+          .on('record', (data) ->
+            if data.geo || data.geom || data.wkt
+              mapstore.add (data.geo || data.geom || data.wkt), data, (err, item) ->
+                contents.push item unless err
+            else
+              mapstore.add data, (err, item) ->
+                contents.push item unless err
+          )
+          .on('end', ->
+            callback(null, contents)
+          )
+        return
 
   if this.isArray param1
     # param1 is an array
@@ -73,6 +110,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
             try
               prop = JSON.parse prop
             catch
+              prop = prop
 
           if typeof prop == 'object'
             for key in Object.keys(prop)
@@ -101,6 +139,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
             try
               param2 = JSON.parse param2
             catch
+              param2 = param2
 
           if typeof param2 == 'object'
             if this.isArray param2

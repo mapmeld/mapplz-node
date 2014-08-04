@@ -272,3 +272,34 @@ describe('queries', ->
           assert.equal(nearest.lng, -70)
           done()
 )
+
+describe('strange inputs', ->
+  it 'reads WKT string', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add "LINESTRING(-70 40, -110 22)", (err, line) ->
+      response = line.path[0]
+      assert.equal(response[0], 40)
+      assert.equal(response[1], -70)
+      done()
+
+  it 'reads csv string with lat and lng columns', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add "lat,lng,label\n40,-70,banana", (err, pts) ->
+      response = pts[0]
+      assert.equal(response.lat, 40)
+      assert.equal(response.lng, -70)
+      done()
+
+  it 'reads csv string with WKT column', (done) ->
+    mapstore = new MapPLZ
+    mapstore.add "wkt,label\nPOINT(-70 40),banana", (err, pts) ->
+      response = pts[0]
+      assert.equal(response.lat, 40)
+      assert.equal(response.lng, -70)
+      done()
+
+  # it 'reads mapplz code', (done) ->
+  #   mapstore = new MapPLZ
+  #   mapstore.add '', (err, pts) ->
+  #     done()
+)

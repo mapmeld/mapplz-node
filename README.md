@@ -47,6 +47,8 @@ mapstore.add({ lat: 40, lng: -70, color: "blue" }, function(err, pt2) {
   mapstore.add(40, -70, { color: "blue" }, function(err, pt3) {  
   });
 });
+
+// also: CSV strings and MapPLZ code
 ```
 
 Each feature is returned as a MapItem, which is easy to retrieve data from.
