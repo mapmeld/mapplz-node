@@ -298,8 +298,16 @@ describe('strange inputs', ->
       assert.equal(response.lng, -70)
       done()
 
-  # it 'reads mapplz code', (done) ->
-  #   mapstore = new MapPLZ
-  #   mapstore.add '', (err, pts) ->
-  #     done()
+  it 'reads mapplz code', (done) ->
+    mapstore = new MapPLZ
+    mapcode = "map\n"
+    mapcode += "  marker\n"
+    mapcode += "    [40, -70]\n"
+    mapcode += "  plz\n"
+    mapcode += "plz\n"
+    mapstore.add mapcode, (err, pts) ->
+      response = pts[0]
+      assert.equal(response.lat, 40)
+      assert.equal(response.lng, -70)
+      done()
 )

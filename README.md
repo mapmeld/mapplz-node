@@ -48,7 +48,16 @@ mapstore.add({ lat: 40, lng: -70, color: "blue" }, function(err, pt2) {
   });
 });
 
-// also: CSV strings and MapPLZ code
+// also: WKT, CSV strings, and MapPLZ code
+mapstore.add('POINT(-70 40)');
+mapstore.add('color,geo\nred,\'{"type":"Feature","geometry":{"type":"Point","coordinates":[-70,40]}}\'');
+
+mapcode =  "map\n";
+mapcode += "  marker\n";
+mapcode += "    [40, -70]\n";
+mapcode += "  plz\n";
+mapcode += "plz\n";
+mapstore.add(mapcode);
 ```
 
 Each feature is returned as a MapItem, which is easy to retrieve data from.

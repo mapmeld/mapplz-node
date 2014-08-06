@@ -77,22 +77,36 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
 
         this.add contents, param2 || callback, callback
         return
+
+      if (param1.indexOf('map') > -1) and (param1.indexOf('plz') > -1)
+        # try mapplz code
+        this.process_code param1, callback
+        return
+
       else
         # try CSV
         callbacks = 0
         contents = []
         mapstore = this
+
+        records = 0
+        finished = false
+
         csv.fromString(param1, { headers: true })
           .on('record', (data) ->
+            records++
             if data.geo || data.geom || data.wkt
               mapstore.add (data.geo || data.geom || data.wkt), data, (err, item) ->
                 contents.push item unless err
+                callback(err, contents) if finished && contents.length == records
             else
               mapstore.add data, (err, item) ->
                 contents.push item unless err
+                callback(err, contents) if finished && contents.length == records
           )
           .on('end', ->
-            callback(null, contents)
+            finished = true
+            callback(null, contents) if contents.length == records
           )
         return
 
@@ -322,6 +336,137 @@ MapPLZ.prototype.addGeoJson = (gj, callback) ->
 
     result.properties = gj.properties || {}
     result
+
+MapPLZ.prototype.process_code = (code, callback) ->
+  code_lines = code.split("\n")
+  code_level = "toplevel"
+  button_layers = []
+  code_button = 0
+  code_layers = []
+  code_label = ""
+  code_color = null
+  code_latlngs = []
+
+  finish_add = ->
+    added = 0
+    for item in code_layers
+      item.database = this.database
+      item.save (err) ->
+        added++
+        callback(err, code_layers) if code_layers.length == added
+
+  code_line = (index) ->
+    if index >= code_lines.length
+      return finish_add()
+
+    line = code_lines[index].trim()
+    codeline = line.toLowerCase().split(' ')
+
+    if code_level == 'toplevel'
+      code_level = 'map' if line.indexOf('map') > -1
+      return code_line(index + 1)
+
+    else if code_level == 'map' || code_level == 'button'
+      if codeline.indexOf('button') > -1 || codeline.indexOf('btn') > -1
+        code_level = 'button'
+        button_layers.push { layers: [] }
+        code_button = button_layers.length
+
+      if codeline.indexOf('marker') > -1
+        code_level = 'marker'
+        code_latlngs = []
+        return code_line(index + 1)
+
+      else if codeline.indexOf('line') > -1
+        code_level = 'line'
+        code_latlngs = []
+        return code_line(index + 1)
+
+      else if codeline.indexOf('shape') > -1
+        code_level = 'shape'
+        code_latlngs = []
+        return code_line(index + 1)
+
+      if codeline.indexOf('plz') > -1 || codeline.indexOf('please') > -1
+        if code_level == 'map'
+          code_level = 'toplevel'
+          return finish_add()
+
+        else if code_level == 'button'
+          # add button
+          code_level = 'map'
+          code_button = nil
+          return code_line(index + 1)
+
+    else if code_level == 'marker' || code_level == 'line' || code_level == 'shape'
+      if codeline.indexOf('plz') > -1 || codeline.indexOf('please') > -1
+
+        if code_level == 'marker'
+          geoitem = new MapItem
+          geoitem.lat = code_latlngs[0][0]
+          geoitem.lng = code_latlngs[0][1]
+          geoitem.properties = { label: (code_label || '') }
+          code_layers.push geoitem
+
+        else if code_level == 'line'
+          geoitem = new MapItem
+          geoitem.path = code_latlngs
+          geoitem.properties = {
+            color: (code_color || ''),
+            label: (code_label || '')
+          }
+          code_layers.push geoitem
+
+        else if code_level == 'shape'
+          geoitem = new MapItem
+          geoitem.path = [code_latlngs]
+          geoitem.properties = {
+            color: (code_color || ''),
+            fill_color: (code_color || ''),
+            label: (code_label || '')
+          }
+          code_layers.push geoitem
+
+        if code_button
+          code_level = 'button'
+        else
+          code_level = 'map'
+
+        code_latlngs = []
+        return code_line(index + 1)
+
+    # geocoding starts with @ - disabled
+
+    # reading a color
+    if codeline[0].indexOf('#') == 0
+      code_color = codeline.trim()
+      if code_color.length != 4 && code_color.length != 7
+        # named color
+        code_color = code_color.replace('#', '')
+
+      return code_line(index + 1)
+
+    # reading a raw string (probably text for a popup)
+    if codeline[0].indexOf('"') == 0
+      # check button
+      code_label = line.substring( line.indexOf('"') + 1 )
+      code_label = code_label.substring(0, code_label.indexOf('"') - 1)
+
+    # reading a latlng coordinate
+    if line.indexOf('[') > -1 && line.indexOf(',') > -1 && line.indexOf(']') > -1
+      latlng_line = line.replace('[', '').replace(']', '').split(',')
+      latlng_line[0] *= 1
+      latlng_line[1] *= 1
+
+      # must be a 2D coordinate
+      return code_line(index + 1) if latlng_line.length != 2
+
+      code_latlngs.push latlng_line
+
+      return code_line(index + 1)
+
+    code_line(index + 1)
+  code_line(0)
 
 MapPLZ.reverse_path = (path) ->
   path_pts = path.slice(0)
