@@ -35,8 +35,7 @@ connect = (callback) ->
                 console.error 'index error'
                 assert.equal(err, null)
 
-              mapstore.database = new MapPLZ.MongoDB
-              mapstore.database.collection = collection
+              mapstore.database = new MapPLZ.MongoDB collection
               collected = collection
               callback()
 
