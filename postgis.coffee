@@ -1,4 +1,4 @@
-## PostGIS Database Driver
+addGeoJson = require './addGeoJson'
 
 class PostGIS
   constructor: (@client) ->
@@ -35,7 +35,7 @@ class PostGIS
       results = []
       for row in result.rows
         geo = JSON.parse(row.geo)
-        result = db.addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
+        result = addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
         result.id = row.id
         result.database = db
         results.push result
@@ -59,4 +59,4 @@ class PostGIS
     @client.query "SELECT id, ST_AsGeoJSON(geom) AS geo, properties FROM mapplz AS start WHERE ST_Contains(ST_GeomFromText('#{withinpoly.toWKT()}'), start.geom)", (err, results) =>
       @processResults(err, @, results, callback)
 
-module.exports = PostGISs
+module.exports = PostGIS

@@ -1,5 +1,6 @@
 geolib = require 'geolib'
 csv = require 'fast-csv'
+MapItem = require './mapitem'
 
 class MapPLZ
   constructor: ->
@@ -345,34 +346,7 @@ class MapPLZ
     type = json.type
     return (type and (type == "Feature" or type == "FeatureCollection"))
 
-  addGeoJson: (gj, callback) ->
-    if gj.type == "FeatureCollection"
-      results = []
-      iter_callback = (feature_index) =>
-        if feature_index < gj.features.length
-          feature = @addGeoJson(gj.features[feature_index])
-          @save feature, (err, saved) ->
-            results.push saved
-            iter_callback(feature_index + 1)
-        else
-          callback(null, results)
-      iter_callback(0)
-
-    else if gj.type == "Feature"
-      geom = gj.geometry
-      result = ""
-      if geom.type == "Point"
-        result = MapPLZ.standardize({ lat: geom.coordinates[1], lng: geom.coordinates[0] })
-        result.type = "point"
-      else if geom.type == "LineString"
-        result = MapPLZ.standardize({ path: MapPLZ.reverse_path(geom.coordinates) })
-        result.type = "line"
-      else if geom.type == "Polygon"
-        result = MapPLZ.standardize({ path: [MapPLZ.reverse_path(geom.coordinates[0])] })
-        result.type = "polygon"
-
-      result.properties = gj.properties or {}
-      result
+  addGeoJson: require './addGeoJson'
 
   process_code: (code, callback) ->
     code_lines = code.split("\n")
@@ -505,91 +479,14 @@ class MapPLZ
       code_line(index + 1)
     code_line(0)
 
-MapPLZ.reverse_path = (path) ->
-  path_pts = path.slice(0)
-  for p, pt in path_pts
-    path_pts[pt] = path_pts[pt].slice(0).reverse()
-  path_pts
+MapPLZ.reverse_path = require './reverse_path'
 
-MapPLZ.standardize = (geo, props) ->
-  result = new MapItem
-  if typeof geo.lat != "undefined" and typeof geo.lng != "undefined"
-    result.lat = geo.lat * 1
-    result.lng = geo.lng * 1
-  else if geo.path
-    result.path = geo.path
-  result.properties = props or {}
-  result
+MapPLZ.standardize = require './standardize'
 ## MapPLZ data is returned as MapItems
 
-class MapItem
-  toGeoJson: ->
-    if @type == "point"
-      gj_geo = { type: "Point", coordinates: [@lng, @lat] }
-    else if @type == "line"
-      linepath = MapPLZ.reverse_path(@path)
-      gj_geo = { type: "LineString", coordinates: linepath }
-    else if @type == 'polygon'
-      polypath = [MapPLZ.reverse_path(@path[0])]
-      gj_geo = { type: "Polygon", coordinates: polypath }
-    JSON.stringify { type: "Feature", geometry: gj_geo, properties: @properties }
-
-  toWKT: ->
-    if @type == "point"
-      "POINT(#{@lng} #{@lat})"
-    else if @type == "line"
-      linepath = MapPLZ.reverse_path(@path)
-      for p, pt in linepath
-        linepath[pt] = linepath[pt].join ' '
-      linepath = linepath.join ', '
-      "LINESTRING(#{linepath})"
-    else if @type == 'polygon'
-      polypath = MapPLZ.reverse_path(@path[0])
-      for p, pt in polypath
-        polypath[pt] = polypath[pt].join ' '
-      polypath = polypath.join ', '
-      "POLYGON((#{polypath}))"
-
-  save: (callback) ->
-    if @database
-      @database.save @, (err, id)=>
-        @id = id if id
-        callback(err, @)
-    else
-      callback(null, this)
-
-  delete: (callback) ->
-    if @database
-      @database.delete this, (err) ->
-        callback(err)
-    else
-      if @mapitems.indexOf(this) > -1
-        @mapitems.splice(@mapitems.indexOf(this), 1)
-      @type = "deleted"
-      callback(null)
-
-  center: ->
-    if @type == "point"
-      { lat: @lat, lng: @lng }
-    else if @type == "line"
-      avg = { lat: 0, lng: 0 }
-      for pt in @path
-        avg.lat += pt[0]
-        avg.lng += pt[1]
-      avg.lat /= @path.length
-      avg.lng /= @path.length
-      avg
-    else if @type == "polygon"
-      avg = { lat: 0, lng: 0 }
-      for pt in @path[0]
-        avg.lat += pt[0]
-        avg.lng += pt[1]
-      avg.lat /= @path[0].length
-      avg.lng /= @path[0].length
-      avg
 
 
-
+module.exports = exports = MapPLZ
 exports.MapPLZ = MapPLZ
 exports.MapItem = MapItem
 exports.PostGIS = require './postgis'

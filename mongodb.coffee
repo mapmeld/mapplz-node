@@ -1,5 +1,4 @@
-## MongoDB Database Driver
-
+addGeoJson = require './addGeoJson'
 class MongoDB
   constructor: (@collection) ->
 
@@ -47,7 +46,7 @@ query: (query, callback) ->
         for key of row
           if key != "_id" and key != "geom"
             excluded[key] = row[key]
-        result = MapPLZ::addGeoJson { type: "Feature", geometry: row.geo, properties: excluded }
+        result = addGeoJson { type: "Feature", geometry: row.geo, properties: excluded }
         result.id = row._id
         result.database = db
         results.push result
