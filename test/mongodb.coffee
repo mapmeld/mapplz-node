@@ -1,7 +1,7 @@
 assert = require('chai').assert
 MongoClient = require('mongodb').MongoClient
 
-MapPLZ = require '../mapplz'
+MapPLZ = require '../lib/mapplz'
 mapstore = new MapPLZ.MapPLZ
 collected = null
 

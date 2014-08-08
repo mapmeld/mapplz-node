@@ -1,6 +1,7 @@
 {
   "name": "mapplz",
   "description": "Simple geodata and mapmaking",
+  "main": "./lib/mapplz",
   "keywords": [
     "map",
     "etl",
@@ -36,7 +37,7 @@
   "scripts": {
     "test": "npm run test-coffeelint && npm run test-mocha",
     "test-mocha": "mocha --compilers coffee:coffee-script/register",
-    "test-coffeelint": "coffeelint -f test/coffeelint.json ./*.coffee ./test/*.coffee"
+    "test-coffeelint": "coffeelint -f test/coffeelint.json ./lib/*.coffee ./test/*.coffee"
   },
   "license": "FreeBSD"
 }
