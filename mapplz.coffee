@@ -226,19 +226,19 @@ MapPLZ.prototype.embed_html = (callback) ->
 
       if result.type == 'point'
         if result.properties.label || result.properties.popup
-          embed_code += "L.marker([#{result.lat}, #{result.lng}]).addPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
+          embed_code += "L.marker([#{result.lat}, #{result.lng}]).bindPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
         else
           embed_code += "L.marker([#{result.lat}, #{result.lng}], { clickable: false }).addTo(map);\n"
       else if result.type == 'line'
         if result.properties.label || result.properties.popup
           properties["clickable"] = true
-          embed_code += "L.polyline(#{JSON.stringify(result.path)}, #{properties.to_json}).addPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
+          embed_code += "L.polyline(#{JSON.stringify(result.path)}, #{properties.to_json}).bindPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
         else
           embed_code += "L.polyline(#{JSON.stringify(result.path)}).addTo(map);\n"
       else if result.type == 'polygon'
         if result.properties.label || result.properties.popup
           properties["clickable"] = true
-          embed_code += "L.polygon(#{JSON.stringify(result.path)}, #{properties.to_json}).addPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
+          embed_code += "L.polygon(#{JSON.stringify(result.path)}, #{properties.to_json}).bindPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
         else
           embed_code += "L.polygon(#{JSON.stringify(result.path)}).addTo(map);\n"
     embed_code += '</script>\n'
