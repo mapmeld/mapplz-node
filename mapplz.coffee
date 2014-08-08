@@ -735,8 +735,8 @@ inside: (withinpoly, callback) ->
 
 ## get it working with Node.js!
 
-if exports
-  exports.MapPLZ = MapPLZ
-  exports.MapItem = MapItem
-  exports.PostGIS = PostGIS
-  exports.MongoDB = MongoDB
+
+exports.MapPLZ = MapPLZ
+exports.MapItem = MapItem
+exports.PostGIS = PostGIS
+exports.MongoDB = MongoDB
