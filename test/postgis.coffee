@@ -13,14 +13,14 @@ connect = (callback) ->
       console.error 'error connecting to PostgreSQL'
       assert.equal(err, null)
     else
-      mapstore.database = new MapPLZ.PostGIS
-      mapstore.database.client = client
+      mapstore.database = new MapPLZ.PostGIS client
       client.query 'DROP TABLE IF EXISTS mapplz', (err, result) ->
         console.error err if err
         client.query 'CREATE TABLE mapplz (id SERIAL PRIMARY KEY, properties JSON, geom public.geometry)', (err, result) ->
           if err
             console.error 'error creating table'
             assert.equal(err, null)
+          done()
           callback()
 
 describe 'queries db', ->

@@ -594,6 +594,7 @@ class MapItem
 ## PostGIS Database Driver
 
 class PostGIS
+  constructor: (@client) ->
   save: (item, callback) ->
     if item.id
       @client.query "UPDATE mapplz SET geom = ST_GeomFromText('#{item.toWKT()}'), properties = '#{JSON.stringify(item.properties)}' WHERE id = #{item.id * 1}", (err, result) ->
@@ -657,6 +658,7 @@ class PostGIS
 ## MongoDB Database Driver
 
 class MongoDB
+  constructor: (@collection) ->
 
 MongoDB::save = (item, callback) ->
   saveobj = {}
