@@ -1,7 +1,7 @@
 geolib = require 'geolib'
 csv = require 'fast-csv'
 
-MapPLZ = ->
+class MapPlz
 
 MapPLZ.standardize = (geo, props) ->
   result = new MapItem
@@ -13,9 +13,9 @@ MapPLZ.standardize = (geo, props) ->
   result.properties = props || {}
   result
 
-MapPLZ.prototype.add = (param1, param2, param3, param4) ->
-  this.mapitems = [] unless this.mapitems
-  this.database = null unless this.database
+MapPLZ::add = (param1, param2, param3, param4) ->
+  @mapitems = [] unless @mapitems
+  @database = null unless @database
 
   callback = (err, items) ->
   callback = param2 if typeof param2 == "function"
@@ -36,7 +36,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
           pt.properties = JSON.parse param3
         catch
 
-      if this.isArray param3
+      if @isArray param3
         # array
         pt.properties = { property: param3 }
       else if typeof param3 == 'object'
@@ -47,16 +47,16 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
         # string, number, or other singular property
         pt.properties = { property: param3 }
 
-    this.save pt, callback
+    @save pt, callback
     return
 
   if typeof param1 == 'string'
     # try JSON parse
     try
       param1 = JSON.parse param1
-      if this.isGeoJson param1
-        result = this.addGeoJson param1, callback
-        this.save result, callback if result
+      if @isGeoJson param1
+        result = @addGeoJson param1, callback
+        @save result, callback if result
         return
     catch
       if param1[param1.length-1] == ')' && (param1.indexOf 'POINT' == 0 || param1.indexOf 'LINESTRING' == 0 || param1.indexOf 'POLYGON' == 0)
@@ -75,32 +75,31 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
           for pt in pts
             contents.push pt.trim().split(' ').reverse()
 
-        this.add contents, param2 || callback, callback
+        @add contents, param2 || callback, callback
         return
 
       if (param1.indexOf('map') > -1) and (param1.indexOf('plz') > -1)
         # try mapplz code
-        this.process_code param1, callback
+        @process_code param1, callback
         return
 
       else
         # try CSV
         callbacks = 0
         contents = []
-        mapstore = this
 
         records = 0
         finished = false
 
         csv.fromString(param1, { headers: true })
-          .on('record', (data) ->
+          .on('record', (data) =>
             records++
             if data.geo || data.geom || data.wkt
-              mapstore.add (data.geo || data.geom || data.wkt), data, (err, item) ->
+              aadd (data.geo || data.geom || data.wkt), data, (err, item) ->
                 contents.push item unless err
                 callback(err, contents) if finished && contents.length == records
             else
-              mapstore.add data, (err, item) ->
+              @add data, (err, item) ->
                 contents.push item unless err
                 callback(err, contents) if finished && contents.length == records
           )
@@ -110,7 +109,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
           )
         return
 
-  if this.isArray param1
+  if @isArray param1
     # param1 is an array
 
     if param1.length >= 2
@@ -132,13 +131,13 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
           else if typeof prop != 'function'
             result.properties = { property: prop }
 
-        this.save result, callback
+        @save result, callback
         return
 
     if typeof param1[0] == 'object'
-      if this.isArray param1[0]
+      if @isArray param1[0]
         # param1 contains an array of arrays - probably coordinates
-        if this.isArray param1[0][0]
+        if @isArray param1[0][0]
           # polygon
           result = MapPLZ.standardize({ path: param1 })
           result.type = 'polygon'
@@ -156,21 +155,21 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
               param2 = param2
 
           if typeof param2 == 'object'
-            if this.isArray param2
+            if @isArray param2
               result.properties = { property: param2 }
             else
               result.properties = param2
           else if typeof param2 != 'function'
             result.properties = { property: param2 }
 
-        this.save result, callback
+        @save result, callback
         return
       else
         # param1 contains an array of objects to add
         results = []
         for obj in param1
-          results.push this.add(obj)
-        this.save results, callback
+          results.push @add(obj)
+        @save results, callback
         return
 
 
@@ -181,7 +180,7 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
       result.type = "point"
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'lat' || key == 'lng'
-      this.save result, callback
+      @save result, callback
       return
 
     else if param1.path
@@ -193,23 +192,23 @@ MapPLZ.prototype.add = (param1, param2, param3, param4) ->
       for key in Object.keys(param1)
         result.properties[key] = param1[key] unless key == 'path'
 
-      this.save result, callback
+      @save result, callback
       return
 
-    else if this.isGeoJson param1
-      results = this.addGeoJson param1, callback
-      this.save results, callback if results
+    else if @isGeoJson param1
+      results = @addGeoJson param1, callback
+      @save results, callback if results
       return
 
-MapPLZ.prototype.count = (query, callback) ->
-  if this.database
-    this.database.count(query, callback)
+MapPLZ::count = (query, callback) ->
+  if @database
+    @database.count(query, callback)
   else
-    this.query query, (err, results) ->
+    @query query, (err, results) ->
       callback(err, results.length)
 
-MapPLZ.prototype.embed_html = (callback) ->
-  this.query '', (err, results) ->
+MapPLZ::embed_html = (callback) ->
+  @query '', (err, results) ->
     embed_code = '<div id="map"></div>\n'
     embed_code += '<link rel="stylesheet" type="text/css" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>\n'
     embed_code += '<script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>\n'
@@ -244,22 +243,22 @@ MapPLZ.prototype.embed_html = (callback) ->
     embed_code += '</script>\n'
     callback(embed_code)
 
-MapPLZ.prototype.render_html = (callback) ->
-  this.embed_html (embed_code) ->
+MapPLZ::render_html = (callback) ->
+  @embed_html (embed_code) ->
     embed_page = '<!DOCTYPE html>\n<html>\n<head>\n<style>\nhtml, body, #map { width: 100%; height: 100%; padding: 0; margin: 0; }\n</style>\n</head>\n<body>\n'
     embed_page += embed_code
     embed_page += '</body>\n</html>\n'
     callback(embed_page)
 
-MapPLZ.prototype.query = (query, callback) ->
-  if this.database
-    this.database.query(query, callback)
+MapPLZ::query = (query, callback) ->
+  if @database
+    @database.query(query, callback)
   else
     if query == null || query == ""
-      callback(null, this.mapitems)
+      callback(null, @mapitems)
     else
       results = []
-      for mapitem in this.mapitems
+      for mapitem in @mapitems
         if mapitem && mapitem.type != "deleted"
           match = true
           for key of query
@@ -268,12 +267,12 @@ MapPLZ.prototype.query = (query, callback) ->
           results.push mapitem if match
       callback(null, results)
 
-MapPLZ.prototype.where = (query, callback) ->
-  this.query(query, callback)
+MapPLZ::where = (query, callback) ->
+  @query(query, callback)
 
-MapPLZ.prototype.near = (neargeo, count, callback) ->
+MapPLZ::near = (neargeo, count, callback) ->
   nearpt = neargeo
-  if this.isArray(neargeo)
+  if @isArray(neargeo)
     nearpt = new MapItem
     nearpt.type = "point"
     nearpt.lat = neargeo[0]
@@ -282,12 +281,12 @@ MapPLZ.prototype.near = (neargeo, count, callback) ->
     if typeof neargeo == 'string'
       neargeo = JSON.parse(neargeo)
     unless typeof neargeo.lat == "undefined" && typeof neargeo.lng == "undefined"
-      nearpt = this.addGeoJson(neargeo)
+      nearpt = @addGeoJson(neargeo)
 
-  if this.database
-    this.database.near(nearpt, count, callback)
+  if @database
+    @database.near(nearpt, count, callback)
   else
-    this.query "", (err, items) ->
+    @query "", (err, items) ->
       centerpts = []
       for item in items
         center = item.center()
@@ -298,9 +297,9 @@ MapPLZ.prototype.near = (neargeo, count, callback) ->
         break if p >= count
       callback(null, centerpts.slice(0, count))
 
-MapPLZ.prototype.inside = (withingeo, callback) ->
+MapPLZ::inside = (withingeo, callback) ->
   withinpoly = withingeo
-  if this.isArray(withingeo)
+  if @isArray(withingeo)
     withinpoly = new MapItem
     withinpoly.type = "polygon"
     withinpoly.path = withingeo
@@ -308,12 +307,12 @@ MapPLZ.prototype.inside = (withingeo, callback) ->
     if typeof withingeo == 'string'
       withingeo = JSON.parse(withingeo)
     unless withingeo.path
-      withinpoly = this.addGeoJson(withingeo)
+      withinpoly = @addGeoJson(withingeo)
 
-  if this.database
-    this.database.inside(withinpoly, callback)
+  if @database
+    @database.inside(withinpoly, callback)
   else
-    this.query "", (err, items) ->
+    @query "", (err, items) ->
       withinpoly = withinpoly.path[0]
       for pt, p in withinpoly
         withinpoly[p] = { latitude: pt[0], longitude: pt[1] }
@@ -324,40 +323,39 @@ MapPLZ.prototype.inside = (withingeo, callback) ->
           results.push item
       callback(null, results)
 
-MapPLZ.prototype.save = (items, callback) ->
-  if this.database
-    if this.isArray(items)
+MapPLZ::save = (items, callback) ->
+  if @database
+    if @isArray(items)
       for item in items
-        item.database = this.database
+        item.database = @database
         item.save(callback)
     else
-      items.database = this.database
+      items.database = @database
       items.save(callback)
   else
-    if this.isArray(items)
+    if @isArray(items)
       for item in items
-        item.mapitems = this.mapitems
-      this.mapitems.concat items
+        item.mapitems = @mapitems
+      @mapitems.concat items
     else
-      items.mapitems = this.mapitems
-      this.mapitems.push items
+      items.mapitems = @mapitems
+      @mapitems.push items
     callback(null, items)
 
-MapPLZ.prototype.isArray = (inspect) ->
+MapPLZ::isArray = (inspect) ->
   return (typeof inspect == 'object' && typeof inspect.push == 'function')
 
-MapPLZ.prototype.isGeoJson = (json) ->
+MapPLZ::isGeoJson = (json) ->
   type = json.type
   return (type && (type == "Feature" || type == "FeatureCollection"))
 
-MapPLZ.prototype.addGeoJson = (gj, callback) ->
+MapPLZ::addGeoJson = (gj, callback) ->
   if gj.type == "FeatureCollection"
     results = []
-    that = this
-    iter_callback = (feature_index) ->
+    iter_callback = (feature_index) =>
       if feature_index < gj.features.length
-        feature = that.addGeoJson(gj.features[feature_index])
-        that.save feature, (err, saved) ->
+        feature = @addGeoJson(gj.features[feature_index])
+        @save feature, (err, saved) ->
           results.push saved
           iter_callback(feature_index + 1)
       else
@@ -371,16 +369,16 @@ MapPLZ.prototype.addGeoJson = (gj, callback) ->
       result = MapPLZ.standardize({ lat: geom.coordinates[1], lng: geom.coordinates[0] })
       result.type = "point"
     else if geom.type == "LineString"
-      result = MapPLZ.standardize({ path: this.reverse_path(geom.coordinates) })
+      result = MapPLZ.standardize({ path: @reverse_path(geom.coordinates) })
       result.type = "line"
     else if geom.type == "Polygon"
-      result = MapPLZ.standardize({ path: [this.reverse_path(geom.coordinates[0])] })
+      result = MapPLZ.standardize({ path: [@reverse_path(geom.coordinates[0])] })
       result.type = "polygon"
 
     result.properties = gj.properties || {}
     result
 
-MapPLZ.prototype.process_code = (code, callback) ->
+MapPLZ::process_code = (code, callback) ->
   code_lines = code.split("\n")
   code_level = "toplevel"
   button_layers = []
@@ -393,7 +391,7 @@ MapPLZ.prototype.process_code = (code, callback) ->
   finish_add = ->
     added = 0
     for item in code_layers
-      item.database = this.database
+      item.database = @database
       item.save (err) ->
         added++
         callback(err, code_layers) if code_layers.length == added
@@ -519,166 +517,165 @@ MapPLZ.reverse_path = (path) ->
 
 ## MapPLZ data is returned as MapItems
 
-MapItem = ->
-MapItem.prototype.toGeoJson = ->
-  if this.type == "point"
-    gj_geo = { type: "Point", coordinates: [this.lng, this.lat] }
-  else if this.type == "line"
-    linepath = MapPLZ.reverse_path(this.path)
-    gj_geo = { type: "LineString", coordinates: linepath }
-  else if this.type == 'polygon'
-    polypath = [MapPLZ.reverse_path(this.path[0])]
-    gj_geo = { type: "Polygon", coordinates: polypath }
-  JSON.stringify { type: "Feature", geometry: gj_geo, properties: this.properties }
+class MapItem
+  toGeoJson: ->
+    if @type == "point"
+      gj_geo = { type: "Point", coordinates: [@lng, @lat] }
+    else if @type == "line"
+      linepath = MapPLZ.reverse_path(@path)
+      gj_geo = { type: "LineString", coordinates: linepath }
+    else if @type == 'polygon'
+      polypath = [MapPLZ.reverse_path(@path[0])]
+      gj_geo = { type: "Polygon", coordinates: polypath }
+    JSON.stringify { type: "Feature", geometry: gj_geo, properties: @properties }
 
-MapItem.prototype.toWKT = ->
-  if this.type == "point"
-    "POINT(#{this.lng} #{this.lat})"
-  else if this.type == "line"
-    linepath = MapPLZ.reverse_path(this.path)
-    for p, pt in linepath
-      linepath[pt] = linepath[pt].join ' '
-    linepath = linepath.join ', '
-    "LINESTRING(#{linepath})"
-  else if this.type == 'polygon'
-    polypath = MapPLZ.reverse_path(this.path[0])
-    for p, pt in polypath
-      polypath[pt] = polypath[pt].join ' '
-    polypath = polypath.join ', '
-    "POLYGON((#{polypath}))"
+  toWKT: ->
+    if @type == "point"
+      "POINT(#{@lng} #{@lat})"
+    else if @type == "line"
+      linepath = MapPLZ.reverse_path(@path)
+      for p, pt in linepath
+        linepath[pt] = linepath[pt].join ' '
+      linepath = linepath.join ', '
+      "LINESTRING(#{linepath})"
+    else if @type == 'polygon'
+      polypath = MapPLZ.reverse_path(@path[0])
+      for p, pt in polypath
+        polypath[pt] = polypath[pt].join ' '
+      polypath = polypath.join ', '
+      "POLYGON((#{polypath}))"
 
-MapItem.prototype.save = (callback) ->
-  if this.database
-    my_mapitem = this
-    this.database.save this, (err, id) ->
-      my_mapitem.id = id if id
-      callback(err, my_mapitem)
-  else
-    callback(null, this)
+  save: (callback) ->
+    if @database
+      @database.save @, (err, id)=>
+        @id = id if id
+        callback(err, @)
+    else
+      callback(null, this)
 
-MapItem.prototype.delete = (callback) ->
-  if this.database
-    my_mapitem = this
-    this.database.delete this, (err) ->
-      callback(err)
-  else
-    if this.mapitems.indexOf(this) > -1
-      this.mapitems.splice(this.mapitems.indexOf(this), 1)
-    this.type = "deleted"
-    callback(null)
+  delete: (callback) ->
+    if @database
+      @database.delete this, (err) ->
+        callback(err)
+    else
+      if @mapitems.indexOf(this) > -1
+        @mapitems.splice(@mapitems.indexOf(this), 1)
+      @type = "deleted"
+      callback(null)
 
-MapItem.prototype.center = ->
-  if this.type == "point"
-    { lat: this.lat, lng: this.lng }
-  else if this.type == "line"
-    avg = { lat: 0, lng: 0 }
-    for pt in this.path
-      avg.lat += pt[0]
-      avg.lng += pt[1]
-    avg.lat /= this.path.length
-    avg.lng /= this.path.length
-    avg
-  else if this.type == "polygon"
-    avg = { lat: 0, lng: 0 }
-    for pt in this.path[0]
-      avg.lat += pt[0]
-      avg.lng += pt[1]
-    avg.lat /= this.path[0].length
-    avg.lng /= this.path[0].length
-    avg
+  center: ->
+    if @type == "point"
+      { lat: @lat, lng: @lng }
+    else if @type == "line"
+      avg = { lat: 0, lng: 0 }
+      for pt in @path
+        avg.lat += pt[0]
+        avg.lng += pt[1]
+      avg.lat /= @path.length
+      avg.lng /= @path.length
+      avg
+    else if @type == "polygon"
+      avg = { lat: 0, lng: 0 }
+      for pt in @path[0]
+        avg.lat += pt[0]
+        avg.lng += pt[1]
+      avg.lat /= @path[0].length
+      avg.lng /= @path[0].length
+      avg
 
 
 ## Database Drivers
 
 ## PostGIS Database Driver
 
-PostGIS = ->
-PostGIS.prototype.save = (item, callback) ->
-  if item.id
-    this.client.query "UPDATE mapplz SET geom = ST_GeomFromText('#{item.toWKT()}'), properties = '#{JSON.stringify(item.properties)}' WHERE id = #{item.id * 1}", (err, result) ->
-      console.error err if err
-      callback(err, item.id)
-  else
-    this.client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
-      console.error err if err
-      callback(err, result.rows[0].id || null)
+class PostGIS
+  save: (item, callback) ->
+    if item.id
+      @client.query "UPDATE mapplz SET geom = ST_GeomFromText('#{item.toWKT()}'), properties = '#{JSON.stringify(item.properties)}' WHERE id = #{item.id * 1}", (err, result) ->
+        console.error err if err
+        callback(err, item.id)
+    else
+      @client.query "INSERT INTO mapplz (properties, geom) VALUES ('#{JSON.stringify(item.properties)}', ST_GeomFromText('#{item.toWKT()}')) RETURNING id", (err, result) ->
+        console.error err if err
+        callback(err, result.rows[0].id || null)
 
-PostGIS.prototype.delete = (item, callback) ->
-  this.client.query "DELETE FROM mapplz WHERE id = #{item.id * 1}", (err) ->
-    item = null
-    callback(err)
+  delete: (item, callback) ->
+    @client.query "DELETE FROM mapplz WHERE id = #{item.id * 1}", (err) ->
+      item = null
+      callback(err)
 
-PostGIS.prototype.count = (query, callback) ->
-  condition = "1=1"
-  if query && query.length
-    condition = query
-    where_prop = condition.trim().split(' ')[0]
-    condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
+  count: (query, callback) ->
+    condition = "1=1"
+    if query && query.length
+      condition = query
+      where_prop = condition.trim().split(' ')[0]
+      condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
 
-  this.client.query "SELECT COUNT(*) AS count FROM mapplz WHERE #{condition}", (err, result) ->
-    callback(err, result.rows[0].count || null)
+    @client.query "SELECT COUNT(*) AS count FROM mapplz WHERE #{condition}", (err, result) ->
+      callback(err, result.rows[0].count || null)
 
-PostGIS.prototype.processResults = (err, db, result, callback) ->
-  if err
-    console.error err
-    callback(err, [])
-  else
-    results = []
-    for row in result.rows
-      geo = JSON.parse(row.geo)
-      result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
-      result.id = row.id
-      result.database = db
-      results.push result
-    callback(err, results)
+  processResults: (err, db, result, callback) ->
+    if err
+      console.error err
+      callback(err, [])
+    else
+      results = []
+      for row in result.rows
+        geo = JSON.parse(row.geo)
+        result = MapPLZ::addGeoJson { type: "Feature", geometry: geo, properties: row.properties }
+        result.id = row.id
+        result.database = db
+        results.push result
+      callback(err, results)
 
-PostGIS.prototype.query = (query, callback) ->
-  condition = "1=1"
-  db = this
-  if query && query.length
-    condition = query
-    where_prop = condition.trim().split(' ')[0]
-    condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
+  query: (query, callback) ->
+    condition = "1=1"
+    db = this
+    if query && query.length
+      condition = query
+      where_prop = condition.trim().split(' ')[0]
+      condition = condition.replace(where_prop, "json_extract_path_text(properties, '#{where_prop}')")
 
-  this.client.query "SELECT ST_AsGeoJSON(geom) AS geo, properties FROM mapplz WHERE #{condition}", (err, result) ->
-    db.processResults(err, db, result, callback)
+    @client.query "SELECT ST_AsGeoJSON(geom) AS geo, properties FROM mapplz WHERE #{condition}", (err, result) ->
+      db.processResults(err, db, result, callback)
 
-PostGIS.prototype.near = (nearpt, count, callback) ->
-  db = this
-  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geo, properties, ST_Distance(start.geom::geography, ST_GeomFromText('#{nearpt.toWKT()}')::geography) AS distance FROM mapplz AS start ORDER BY distance LIMIT #{count}", (err, results) ->
-    db.processResults(err, db, results, callback)
+  near: (nearpt, count, callback) ->
+    db = this
+    @client.query "SELECT id, ST_AsGeoJSON(geom) AS geo, properties, ST_Distance(start.geom::geography, ST_GeomFromText('#{nearpt.toWKT()}')::geography) AS distance FROM mapplz AS start ORDER BY distance LIMIT #{count}", (err, results) ->
+      db.processResults(err, db, results, callback)
 
-PostGIS.prototype.inside = (withinpoly, callback) ->
-  db = this
-  this.client.query "SELECT id, ST_AsGeoJSON(geom) AS geo, properties FROM mapplz AS start WHERE ST_Contains(ST_GeomFromText('#{withinpoly.toWKT()}'), start.geom)", (err, results) ->
-    db.processResults(err, db, results, callback)
+  inside: (withinpoly, callback) ->
+    db = this
+    @client.query "SELECT id, ST_AsGeoJSON(geom) AS geo, properties FROM mapplz AS start WHERE ST_Contains(ST_GeomFromText('#{withinpoly.toWKT()}'), start.geom)", (err, results) ->
+      db.processResults(err, db, results, callback)
 
 ## MongoDB Database Driver
 
-MongoDB = ->
-MongoDB.prototype.save = (item, callback) ->
+class MongoDB
+
+MongoDB::save = (item, callback) ->
   saveobj = {}
   saveobj = JSON.parse(JSON.stringify(item.properties)) if item.properties
   saveobj.geo = JSON.parse(item.toGeoJson()).geometry
   if item.id
     saveobj._id = item.id
-    this.collection.save saveobj, (err) ->
+    @collection.save saveobj, (err) ->
       console.error err if err
       callback(err, item.id)
   else
-    this.collection.insert saveobj, (err, results) ->
+    @collection.insert saveobj, (err, results) ->
       console.error err if err
       result = results[0] || null
       callback(err, result._id || null)
 
-MongoDB.prototype.delete = (item, callback) ->
-  this.collection.remove { _id: item.id }, (err) ->
+MongoDB::delete = (item, callback) ->
+  @collection.remove { _id: item.id }, (err) ->
     item = null
     callback(err)
 
-MongoDB.prototype.count = (query, callback) ->
+MongoDB::count = (query, callback) ->
   condition = query || {}
-  this.collection.find query, (err, cursor) ->
+  @collection.find query, (err, cursor) ->
     if err
       console.error err
       callback(err, null)
@@ -686,10 +683,10 @@ MongoDB.prototype.count = (query, callback) ->
       cursor.count (err, count) ->
         callback(err, count || 0)
 
-MongoDB.prototype.query = (query, callback) ->
+MongoDB::query = (query, callback) ->
   condition = query || {}
   db = this
-  this.collection.find(query).toArray (err, rows) ->
+  @collection.find(query).toArray (err, rows) ->
     if err
       console.error err
       callback(err, [])
@@ -700,13 +697,13 @@ MongoDB.prototype.query = (query, callback) ->
         for key of row
           if key != "_id" && key != "geom"
             excluded[key] = row[key]
-        result = MapPLZ.prototype.addGeoJson { type: "Feature", geometry: row.geo, properties: excluded }
+        result = MapPLZ::addGeoJson { type: "Feature", geometry: row.geo, properties: excluded }
         result.id = row._id
         result.database = db
         results.push result
       callback(err, results)
 
-MongoDB.prototype.near = (nearpt, count, callback) ->
+MongoDB::near = (nearpt, count, callback) ->
   max = 40010000000
   nearquery = {
     geo: {
@@ -716,10 +713,10 @@ MongoDB.prototype.near = (nearpt, count, callback) ->
     }
   }
 
-  this.query nearquery, (err, results) ->
+  @query nearquery, (err, results) ->
     callback(err, (results || []).slice(0, count))
 
-MongoDB.prototype.inside = (withinpoly, callback) ->
+MongoDB::inside = (withinpoly, callback) ->
   withinquery = {
     geo: {
       $geoWithin: {
@@ -727,7 +724,7 @@ MongoDB.prototype.inside = (withinpoly, callback) ->
       }
     }
   }
-  this.query withinquery, callback
+  @query withinquery, callback
 
 ## get it working with Node.js!
 
