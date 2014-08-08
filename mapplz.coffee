@@ -660,7 +660,7 @@ class PostGIS
 class MongoDB
   constructor: (@collection) ->
 
-MongoDB::save = (item, callback) ->
+save: (item, callback) ->
   saveobj = {}
   saveobj = JSON.parse(JSON.stringify(item.properties)) if item.properties
   saveobj.geo = JSON.parse(item.toGeoJson()).geometry
@@ -675,12 +675,12 @@ MongoDB::save = (item, callback) ->
       result = results[0] or null
       callback(err, result._id or null)
 
-MongoDB::delete = (item, callback) ->
+delete: (item, callback) ->
   @collection.remove { _id: item.id }, (err) ->
     item = null
     callback(err)
 
-MongoDB::count = (query, callback) ->
+count: (query, callback) ->
   condition = query or {}
   @collection.find query, (err, cursor) ->
     if err
@@ -690,7 +690,7 @@ MongoDB::count = (query, callback) ->
       cursor.count (err, count) ->
         callback(err, count or 0)
 
-MongoDB::query = (query, callback) ->
+query: (query, callback) ->
   condition = query or {}
   db = this
   @collection.find(query).toArray (err, rows) ->
@@ -710,7 +710,7 @@ MongoDB::query = (query, callback) ->
         results.push result
       callback(err, results)
 
-MongoDB::near = (nearpt, count, callback) ->
+near: (nearpt, count, callback) ->
   max = 40010000000
   nearquery = {
     geo: {
@@ -723,7 +723,7 @@ MongoDB::near = (nearpt, count, callback) ->
   @query nearquery, (err, results) ->
     callback(err, (results or []).slice(0, count))
 
-MongoDB::inside = (withinpoly, callback) ->
+inside: (withinpoly, callback) ->
   withinquery = {
     geo: {
       $geoWithin: {
