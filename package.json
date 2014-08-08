@@ -9,7 +9,7 @@
     "postgis",
     "spatial"
   ],
-  "version": "0.0.7",
+  "version": "0.0.9",
   "author": "mapmeld",
   "repository": {
     "type": "git",

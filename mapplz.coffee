@@ -208,6 +208,49 @@ MapPLZ.prototype.count = (query, callback) ->
     this.query query, (err, results) ->
       callback(err, results.length)
 
+MapPLZ.prototype.embed_html = (callback) ->
+  this.query '', (err, results) ->
+    embed_code = '<div id="map"></div>\n'
+    embed_code += '<link rel="stylesheet" type="text/css" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"/>\n'
+    embed_code += '<script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>\n'
+    embed_code += '<script type="text/javascript">\n'
+    embed_code += 'var map = L.map("map");\n'
+    for result in results
+      properties = {}
+      properties["color"] = result.properties.color if result.properties.color
+      properties["opacity"] = result.properties.opacity if typeof(result.properties.opacity) != "undefined"
+      properties["fillColor"] = result.properties.fillColor if result.properties.fillColor
+      properties["fillOpacity"] = result.properties.fillOpacity if typeof(result.properties.fillOpacity) != "undefined"
+      properties["weight"] = result.properties.weight if typeof(result.properties.weight) != "undefined"
+      properties["stroke"] = result.properties.stroke if result.properties.stroke
+
+      if result.type == 'point'
+        if result.properties.label || result.properties.popup
+          embed_code += "L.marker([#{result.lat}, #{result.lng}]).addPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
+        else
+          embed_code += "L.marker([#{result.lat}, #{result.lng}], { clickable: false }).addTo(map);\n"
+      else if result.type == 'line'
+        if result.properties.label || result.properties.popup
+          properties["clickable"] = true
+          embed_code += "L.polyline(#{JSON.stringify(result.path)}, #{properties.to_json}).addPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
+        else
+          embed_code += "L.polyline(#{JSON.stringify(result.path)}).addTo(map);\n"
+      else if result.type == 'polygon'
+        if result.properties.label || result.properties.popup
+          properties["clickable"] = true
+          embed_code += "L.polygon(#{JSON.stringify(result.path)}, #{properties.to_json}).addPopup('#{result.properties.label || result.properties.popup}').addTo(map);\n"
+        else
+          embed_code += "L.polygon(#{JSON.stringify(result.path)}).addTo(map);\n"
+    embed_code += '</script>\n'
+    callback(embed_code)
+
+MapPLZ.prototype.render_html = (callback) ->
+  this.embed_html (embed_code) ->
+    embed_page = '<!DOCTYPE html>\n<html>\n<head>\n<style>\nhtml, body, #map { width: 100%; height: 100%; padding: 0; margin: 0; }\n</style>\n</head>\n<body>\n'
+    embed_page += embed_code
+    embed_page += '</body>\n</html>\n'
+    callback(embed_page)
+
 MapPLZ.prototype.query = (query, callback) ->
   if this.database
     this.database.query(query, callback)

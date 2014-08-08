@@ -157,6 +157,22 @@ MongoClient.connect(connString, function(err, db) {
 });
 ```
 
+## Interactive Maps
+
+Export as an interactive HTML/JS map
+
+```
+mapstore.add({lat: 40, lng: -70, label: "Popup text"}, function(err, pt) {
+  // the map embed
+  mapstore.embed_html(function(content){
+  });
+
+  // a whole page (including embed)
+  mapstore.render_html(function(content){
+  });
+});
+```
+
 ## Dependencies
 
 All are installed when you run ```npm install mapplz```
