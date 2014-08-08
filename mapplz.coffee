@@ -1,7 +1,7 @@
 geolib = require 'geolib'
 csv = require 'fast-csv'
 
-class MapPlz
+class MapPLZ
 
 MapPLZ.standardize = (geo, props) ->
   result = new MapItem
@@ -369,10 +369,10 @@ MapPLZ::addGeoJson = (gj, callback) ->
       result = MapPLZ.standardize({ lat: geom.coordinates[1], lng: geom.coordinates[0] })
       result.type = "point"
     else if geom.type == "LineString"
-      result = MapPLZ.standardize({ path: @reverse_path(geom.coordinates) })
+      result = MapPLZ.standardize({ path: MapPLZ.reverse_path(geom.coordinates) })
       result.type = "line"
     else if geom.type == "Polygon"
-      result = MapPLZ.standardize({ path: [@reverse_path(geom.coordinates[0])] })
+      result = MapPLZ.standardize({ path: [MapPLZ.reverse_path(geom.coordinates[0])] })
       result.type = "polygon"
 
     result.properties = gj.properties || {}
