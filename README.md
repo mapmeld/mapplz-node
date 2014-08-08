@@ -16,7 +16,6 @@ Adding some data:
 var MapPLZ = require('mapplz').MapPLZ;
 var mapstore = new MapPLZ();
 
-mapstore = new MapPLZ();
 
 // add points
 mapstore.add(40, -70);
