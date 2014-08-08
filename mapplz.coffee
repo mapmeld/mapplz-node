@@ -336,7 +336,10 @@ class MapPLZ
       callback(null, items)
 
   isArray: (inspect) ->
-    return (typeof inspect == 'object' and typeof inspect.push == 'function')
+    if typeof Array.isArray == 'function'
+      return Array.isArray inspect
+    else
+      return Object::toString.call(arg) == '[object Array]'
 
   isGeoJson: (json) ->
     type = json.type
