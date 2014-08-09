@@ -1,6 +1,6 @@
 assert = require('chai').assert
 
-MapPLZ = require('../mapplz').MapPLZ
+MapPLZ = require('../lib/mapplz')
 mapstore = new MapPLZ
 
 describe('add point', ->

@@ -1,7 +1,7 @@
 assert = require('chai').assert
 pg = require 'pg'
 
-MapPLZ = require '../mapplz'
+MapPLZ = require '../lib/mapplz'
 mapstore = new MapPLZ.MapPLZ
 
 connString = "postgres://postgres:@localhost/travis_postgis"
