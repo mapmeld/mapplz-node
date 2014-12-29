@@ -4,20 +4,38 @@ rethinkdb = require 'rethinkdb'
 MapPLZ = require '../lib/mapplz'
 mapstore = new MapPLZ.MapPLZ
 
-config = { host: "localhost", port: 28015, authKey: "", db: "test" }
+config = { host: "localhost", port: 28015, authKey: "" }
 
 connect = (callback) ->
-  rethinkdb.connect config, (err, conn) ->
-    if err
-      console.error 'error connecting to RethinkDB'
-      assert.equal(err, null)
-    else
-      rethinkdb.table('mapplz').delete().run conn, (err) ->
-        if err
-          console.error 'error clearing table'
-          assert.equal(err, null)
-        mapstore.database = new MapPLZ.RethinkDB conn
-        callback()
+  if !config.db
+    rethinkdb.connect config, (err, conn) ->
+      if err
+        console.error 'no initial connection made'
+        console.error err
+        assert.equal(err, null)
+      else
+        rethinkdb.dbCreate('test').run conn, (err) ->
+          if err
+            console.error 'no db created'
+            console.error err
+          else
+            config.db = test
+            connect(callback)
+  else
+    rethinkdb.connect config, (err, conn) ->
+      if err
+        console.error 'error connecting to test db in RethinkDB'
+        assert.equal(err, null)
+      else
+        rethinkdb.tableCreate('mapplz').run conn, ->
+          # expect an error here, once table exists
+
+          rethinkdb.table('mapplz').delete().run conn, (err) ->
+            if err
+              console.error 'error clearing table'
+              assert.equal(err, null)
+            mapstore.database = new MapPLZ.RethinkDB conn
+            callback()
 
 describe 'queries db', ->
   it 'returns count', (done) ->
