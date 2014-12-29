@@ -85,7 +85,8 @@ function UsePtAndLine(pt, line) {
 
 ## Queries
 
-You don't need a database to query data with MapPLZ, but you're welcome to use Postgres/PostGIS or MongoDB.
+You don't need a database to query data with MapPLZ, but you're able to use Postgres/PostGIS,
+MongoDB, or RethinkDB.
 
 MapPLZ simplifies geodata management and queries:
 
@@ -105,23 +106,21 @@ mapstore.within([[[40, -70], [50, -80], [30, -80], [40, -70]]], function(err, wi
   // can also send GeoJSON, { path: [[[]]] }, or MapItem
 });
 
-// without a DB or with MongoDB
-mapstore.count({ color: "blue" }, function(err, count) {
-  // count == 1
-});
-mapstore.query({ color: "blue" }, function(err, blue_mapitems) {
-  blue_mapitems == [ MapItem ];
-});
-
 // with PostGIS
 mapstore.count("color = 'blue'", function(err, count) {
   // count == 1
 });
 mapstore.query("color = 'blue'", function(err, blue_mapitems) {
-  blue_mapitems == [ MapItem ];
+  // blue_mapitems == [ MapItem ];
 });
 
-// coming soon! simple near-point and within-polygon queries
+// with any setup other than PostGIS
+mapstore.count({ color: "blue" }, function(err, count) {
+  // count == 1
+});
+mapstore.query({ color: "blue" }, function(err, blue_mapitems) {
+  // blue_mapitems == [ MapItem ];
+});
 ```
 
 ### Setting up PostGIS
@@ -153,6 +152,18 @@ MongoClient.connect(connString, function(err, db) {
     mapstore.database = new MapPLZ.MongoDB();
     mapstore.database.collection = collection;
   });
+});
+```
+
+### Setting up RethinkDB
+```
+var rethink = require('rethinkdb');
+var MapPLZ = require('mapplz');
+
+var mapstore = new MapPLZ.MapPLZ();
+
+rethink.connect({ host: "localhost", port: 28015, authKey: "", db: "mapplz" }, function(err, connection) {
+  mapstore.database = new MapPLZ.RethinkDB(connection);
 });
 ```
 
