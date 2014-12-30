@@ -16,10 +16,12 @@ connect = (callback) ->
       else
         rethinkdb.dbCreate('test').run conn, (err) ->
           if err
+            config.db = "test"
+            connect(callback)
             console.error 'no db created'
             console.error err
           else
-            config.db = test
+            config.db = "test"
             connect(callback)
   else
     rethinkdb.connect config, (err, conn) ->
@@ -27,15 +29,24 @@ connect = (callback) ->
         console.error 'error connecting to test db in RethinkDB'
         assert.equal(err, null)
       else
-        rethinkdb.tableCreate('mapplz').run conn, ->
-          # expect an error here, once table exists
-
-          rethinkdb.table('mapplz').delete().run conn, (err) ->
-            if err
-              console.error 'error clearing table'
-              assert.equal(err, null)
-            mapstore.database = new MapPLZ.RethinkDB conn
-            callback()
+        rethinkdb.tableCreate('mapplz').run conn, (err) ->
+          # attempting to create the table verifies that it exists
+          if err
+            # now delete any existing rows from the table
+            rethinkdb.table('mapplz').delete().run conn, (err) ->
+              if err
+                console.error 'error clearing table'
+                assert.equal(err, null)
+              mapstore.database = new MapPLZ.RethinkDB conn
+              callback()
+          else
+            # table was just created - add the index
+            rethinkdb.table('mapplz').indexCreate('geo', { geo: true }).run conn, (err) ->
+              if err
+                console.error 'error creating index'
+                assert.equal(err, null)
+              else
+                callback()
 
 describe 'queries db', ->
   it 'returns count', (done) ->
@@ -91,27 +102,28 @@ describe 'queries db', ->
         )
       )
 
-#   it 'finds nearest point', (done) ->
-#     connect ->
-#       mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
-#         mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
-#           mapstore.near [30, -60], 1, (err, nearest) ->
-#             assert.equal(nearest.length, 1)
-#             response = nearest[0]
-#             assert.equal(response.lat, 40)
-#             assert.equal(response.lng, -70)
-#             done()
-#
-#   it 'finds point in polygon', (done) ->
-#     connect ->
-#       mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
-#         mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
-#           mapstore.inside [[[38, -72], [38, -68], [42, -68], [42, -72], [38, -72]]], (err, within) ->
-#             assert.equal(within.length, 1)
-#             response = within[0]
-#             assert.equal(response.lat, 40)
-#             assert.equal(response.lng, -70)
-#             done()
+  it 'finds nearest point', (done) ->
+    connect ->
+      mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+        mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+          mapstore.near [40, -69], 1, (err, nearest) ->
+            assert.equal(err, null)
+            assert.equal(nearest.length, 1)
+            response = nearest[0]
+            assert.equal(response.lat, 40)
+            assert.equal(response.lng, -70)
+            done()
+
+  it 'finds point in polygon', (done) ->
+    connect ->
+      mapstore.add { lat: 40, lng: -70 }, (err, pt) ->
+        mapstore.add { lat: 35, lng: 110 }, (err, pt2) ->
+          mapstore.inside [[[38, -72], [38, -68], [42, -68], [42, -72], [38, -72]]], (err, within) ->
+            assert.equal(within.length, 1)
+            response = within[0]
+            assert.equal(response.lat, 40)
+            assert.equal(response.lng, -70)
+            done()
 
 describe 'saves to db', ->
   it 'saves properties to db', (done) ->

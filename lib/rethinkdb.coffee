@@ -6,10 +6,9 @@ class RethinkDB
   save: (item, callback) ->
     saveobj = {}
     saveobj = JSON.parse(JSON.stringify(item.properties)) if item.properties
-    saveobj.geo = JSON.parse(item.toGeoJson()).geometry
+    saveobj.geo = rethinkdb.geojson(JSON.parse(item.toGeoJson()).geometry)
     if item.id
-      saveobj.id = item.id
-      rethinkdb.table('mapplz').update(saveobj, { returnChanges: true }).run @connection, (err) ->
+      rethinkdb.table('mapplz').get(item.id).update(saveobj, { returnChanges: true, nonAtomic: true }).run @connection, (err) ->
         console.error err if err
         callback(err, item.id)
     else
@@ -40,14 +39,14 @@ class RethinkDB
     db = this
     rethinkdb.table('mapplz').filter(conditions).run @connection, (err, cursor) ->
       if err
-        callback(err, cursor)
+        callback(err, [])
       else
         cursor.toArray (err, results) ->
           output = []
           for result in results
             excluded = {}
             for key of result
-              if key != "_id" and key != "geom"
+              if key != "geom"
                 excluded[key] = result[key]
             out = addGeoJson { type: "Feature", geometry: result.geo, properties: excluded }
             out.id = result.id
@@ -56,9 +55,45 @@ class RethinkDB
           callback(err, output)
 
   near: (nearpt, count, callback) ->
-    callback()
+    center = rethinkdb.point(nearpt.lng, nearpt.lat)
+    nearOpts = { index: 'geo', maxResults: count, maxDist: 9103126 }
+    db = this
+    rethinkdb.table('mapplz').getNearest(center, nearOpts).run @connection, (err, cursor) ->
+      if err
+        callback(err, [])
+      else
+        cursor.toArray (err, results) ->
+          output = []
+          for response in results
+            result = response.doc
+            excluded = {}
+            for key of result
+              if key != "geom"
+                excluded[key] = result[key]
+            out = addGeoJson { type: "Feature", geometry: result.geo, properties: excluded }
+            out.id = result.id
+            out.database = db
+            output.push out
+          callback(err, output)
 
   inside: (withinpoly, callback) ->
-    callback()
+    polygon = rethinkdb.geojson(JSON.parse(withinpoly.toGeoJson()).geometry)
+    db = this
+    rethinkdb.table('mapplz').getIntersecting(polygon, { index: 'geo' }).run @connection, (err, cursor) ->
+      if err
+        callback(err, [])
+      else
+        cursor.toArray (err, results) ->
+          output = []
+          for result in results
+            excluded = {}
+            for key of result
+              if key != "geom"
+                excluded[key] = result[key]
+            out = addGeoJson { type: "Feature", geometry: result.geo, properties: excluded }
+            out.id = result.id
+            out.database = db
+            output.push out
+          callback(err, output)
 
 module.exports = RethinkDB

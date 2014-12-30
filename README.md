@@ -162,7 +162,10 @@ var MapPLZ = require('mapplz');
 
 var mapstore = new MapPLZ.MapPLZ();
 
-rethink.connect({ host: "localhost", port: 28015, authKey: "", db: "mapplz" }, function(err, connection) {
+// create a db (MY_DB in this example) and table named "mapplz"
+// "mapplz" should have a geo index on its "geo" column
+
+rethink.connect({ host: "localhost", port: 28015, authKey: "", db: "MY_DB" }, function(err, connection) {
   mapstore.database = new MapPLZ.RethinkDB(connection);
 });
 ```
