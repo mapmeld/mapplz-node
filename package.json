@@ -10,7 +10,7 @@
     "postgis",
     "spatial"
   ],
-  "version": "0.0.11",
+  "version": "0.0.12",
   "author": "mapmeld",
   "repository": {
     "type": "git",
@@ -21,7 +21,8 @@
     "geolib": "2.0.x",
     "pg": "3.4.x",
     "mongodb": "1.4.x",
-    "fast-csv": "0.4.x"
+    "fast-csv": "0.4.x",
+    "rethinkdb": "1.15.0-0"
   },
   "devDependencies": {
     "coffeelint": "1.5.x",

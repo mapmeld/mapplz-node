@@ -491,3 +491,4 @@ exports.MapPLZ = MapPLZ
 exports.MapItem = MapItem
 exports.PostGIS = require './postgis'
 exports.MongoDB = require './mongodb'
+exports.RethinkDB = require './rethinkdb'
