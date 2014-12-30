@@ -194,6 +194,8 @@ All are installed when you run ```npm install mapplz```
 * <a href="https://github.com/manuelbieh/Geolib">geolib</a> (MIT license)
 * <a href="https://github.com/brianc/node-postgres">node-postgres</a> (BSD license)
 * <a href="http://mongodb.github.io/node-mongodb-native/">node-mongodb-native</a> (Apache license)
+* <a href="https://www.npmjs.com/package/rethinkdb">rethinkdb</a> (GPL)
+* <a href="http://c2fo.github.io/fast-csv/index.html">fast-csv</a> (MIT license)
 
 ## License
 
