@@ -12,7 +12,7 @@ it into a database.
 
 Adding some data:
 
-```
+```js
 var MapPLZ = require('mapplz').MapPLZ;
 var mapstore = new MapPLZ();
 
@@ -61,7 +61,7 @@ mapstore.add(mapcode);
 
 Each feature is returned as a MapItem, which is easy to retrieve data from.
 
-```
+```js
 mapstore.add(40, -70, function(err, pt) {
   mapstore.add([[40, -70], [50, 20]], { "color": "red" }), function(err, line) {
     UsePtAndLine(pt, line);
@@ -90,7 +90,7 @@ MongoDB, or RethinkDB.
 
 MapPLZ simplifies geodata management and queries:
 
-```
+```js
 mapstore.count("", function(err, count) {
   // count all, return integer
 });
@@ -124,7 +124,7 @@ mapstore.query({ color: "blue" }, function(err, blue_mapitems) {
 ```
 
 ### Setting up PostGIS
-```
+```js
 var pg = require('pg');
 var MapPLZ = require('mapplz');
 
@@ -140,7 +140,7 @@ pg.connect(connString, function(err, client, done) {
 ```
 
 ### Setting up MongoDB
-```
+```js
 var MongoClient = require('mongodb').MongoClient;
 var MapPLZ = require('mapplz');
 
@@ -156,7 +156,7 @@ MongoClient.connect(connString, function(err, db) {
 ```
 
 ### Setting up RethinkDB
-```
+```js
 var rethink = require('rethinkdb');
 var MapPLZ = require('mapplz');
 
@@ -174,7 +174,7 @@ rethink.connect({ host: "localhost", port: 28015, authKey: "", db: "MY_DB" }, fu
 
 Export as an interactive HTML/JS map
 
-```
+```js
 mapstore.add({lat: 40, lng: -70, label: "Popup text"}, function(err, pt) {
   // the map embed
   mapstore.embed_html(function(content){
