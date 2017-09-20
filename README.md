@@ -1,5 +1,7 @@
 # MapPLZ-Node
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/mapmeld/mapplz-node.svg)](https://greenkeeper.io/)
+
 [MapPLZ](http://mapplz.com) is a framework to make mapping quick and easy in
 your favorite language.
 

@@ -17,19 +17,19 @@
     "url": "https://github.com/mapmeld/mapplz-node.git"
   },
   "dependencies": {
-    "coffee-script": "1.7.x",
+    "coffee-script": "~1.12.7",
     "geolib": "2.0.x",
-    "pg": "3.4.x",
-    "mongodb": "1.4.x",
-    "fast-csv": "0.4.x",
-    "rethinkdb": "1.15.0-0"
+    "pg": "~7.3.0",
+    "mongodb": "~2.2.31",
+    "fast-csv": "~2.4.0",
+    "rethinkdb": "2.3.3"
   },
   "devDependencies": {
-    "coffeelint": "1.5.x",
+    "coffeelint": "~1.16.0",
     "should": ">= 0.0.1",
-    "mocha": "1.18.x",
-    "chai": "1.9.x",
-    "supertest": "0.12.x"
+    "mocha": "~3.5.3",
+    "chai": "~4.1.2",
+    "supertest": "~3.0.0"
   },
   "engines": {
     "node": ">= 0.10.x",
