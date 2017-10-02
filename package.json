@@ -25,7 +25,7 @@
     "rethinkdb": "2.3.3"
   },
   "devDependencies": {
-    "coffeelint": "~1.16.0",
+    "coffeelint": "~2.0.3",
     "should": ">= 0.0.1",
     "mocha": "~3.5.3",
     "chai": "~4.1.2",
