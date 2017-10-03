@@ -17,7 +17,7 @@
     "url": "git+https://github.com/mapmeld/mapplz-node.git"
   },
   "dependencies": {
-    "coffee-script": "^1.12.7",
+    "coffeescript": "^2.0.1",
     "fast-csv": "^2.4.1",
     "geolib": "^2.0.23",
     "mongodb": "^2.2.31",
