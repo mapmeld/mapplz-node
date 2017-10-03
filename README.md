@@ -87,8 +87,8 @@ function UsePtAndLine(pt, line) {
 
 ## Queries
 
-You don't need a database to query data with MapPLZ, but you're able to use Postgres/PostGIS,
-MongoDB, or RethinkDB.
+You don't need a database to query data with MapPLZ, but you're able to use Postgres/PostGIS
+or MongoDB for faster, more accurate queries. As of version 1, this library no longer supports RethinkDB.
 
 MapPLZ simplifies geodata management and queries:
 
@@ -127,13 +127,14 @@ mapstore.query({ color: "blue" }, function(err, blue_mapitems) {
 
 ### Setting up PostGIS
 ```js
-var pg = require('pg');
-var MapPLZ = require('mapplz');
+const pg = require('pg');
+const MapPLZ = require('mapplz');
 
 var mapstore = new MapPLZ.MapPLZ();
 var connString = "postgres://postgres:@localhost/travis_postgis";
 
-pg.connect(connString, function(err, client, done) {
+var client = new pg.Client(connString);
+client.connect(connString, function(err, client, done) {
   if(!err) {
     mapstore.database = new MapPLZ.PostGIS();
     mapstore.database.client = client;
@@ -154,21 +155,6 @@ MongoClient.connect(connString, function(err, db) {
     mapstore.database = new MapPLZ.MongoDB();
     mapstore.database.collection = collection;
   });
-});
-```
-
-### Setting up RethinkDB
-```js
-var rethink = require('rethinkdb');
-var MapPLZ = require('mapplz');
-
-var mapstore = new MapPLZ.MapPLZ();
-
-// create a db (MY_DB in this example) and table named "mapplz"
-// "mapplz" should have a geo index on its "geo" column
-
-rethink.connect({ host: "localhost", port: 28015, authKey: "", db: "MY_DB" }, function(err, connection) {
-  mapstore.database = new MapPLZ.RethinkDB(connection);
 });
 ```
 
@@ -196,7 +182,6 @@ All are installed when you run ```npm install mapplz```
 * <a href="https://github.com/manuelbieh/Geolib">geolib</a> (MIT license)
 * <a href="https://github.com/brianc/node-postgres">node-postgres</a> (BSD license)
 * <a href="http://mongodb.github.io/node-mongodb-native/">node-mongodb-native</a> (Apache license)
-* <a href="https://www.npmjs.com/package/rethinkdb">rethinkdb</a> (GPL)
 * <a href="http://c2fo.github.io/fast-csv/index.html">fast-csv</a> (MIT license)
 
 ## License

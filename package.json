@@ -10,35 +10,38 @@
     "postgis",
     "spatial"
   ],
-  "version": "0.0.12",
+  "version": "1.0.2",
   "author": "mapmeld",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mapmeld/mapplz-node.git"
+    "url": "git+https://github.com/mapmeld/mapplz-node.git"
   },
   "dependencies": {
-    "coffee-script": "~1.12.7",
-    "geolib": "2.0.x",
-    "pg": "~7.3.0",
-    "mongodb": "~2.2.31",
-    "fast-csv": "~2.4.0",
-    "rethinkdb": "2.3.3"
+    "coffee-script": "^1.12.7",
+    "fast-csv": "^2.4.1",
+    "geolib": "^2.0.23",
+    "mongodb": "^2.2.31",
+    "pg": "^7.3.0"
   },
   "devDependencies": {
-    "coffeelint": "~2.0.3",
-    "should": ">= 0.0.1",
-    "mocha": "~4.0.0",
-    "chai": "~4.1.2",
-    "supertest": "~3.0.0"
-  },
-  "engines": {
-    "node": ">= 0.10.x",
-    "npm": ">= 1.2.x"
+    "chai": "^4.1.2",
+    "coffeelint": "^2.0.3",
+    "mocha": "^4.0.0",
+    "should": "^13.1.0",
+    "supertest": "^3.0.0"
   },
   "scripts": {
     "test": "npm run test-coffeelint && npm run test-mocha",
     "test-mocha": "mocha --compilers coffee:coffee-script/register",
     "test-coffeelint": "coffeelint -f test/coffeelint.json ./lib/*.coffee ./test/*.coffee"
   },
-  "license": "FreeBSD"
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/mapmeld/mapplz-node/issues"
+  },
+  "homepage": "https://github.com/mapmeld/mapplz-node#readme",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  }
 }

@@ -86,7 +86,7 @@ class MapPLZ
           finished = false
 
           csv.fromString(param1, { headers: true })
-            .on('record', (data) =>
+            .on('data', (data) =>
               records++
               if data.geo or data.geom or data.wkt
                 @add (data.geo or data.geom or data.wkt), data, (err, item) ->
@@ -491,4 +491,3 @@ exports.MapPLZ = MapPLZ
 exports.MapItem = MapItem
 exports.PostGIS = require './postgis'
 exports.MongoDB = require './mongodb'
-exports.RethinkDB = require './rethinkdb'

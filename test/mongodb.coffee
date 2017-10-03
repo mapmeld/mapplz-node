@@ -15,7 +15,7 @@ connect = (callback) ->
         callback()
     return
 
-  MongoClient.connect "mongodb://localhost:27017/sample", (err, db) ->
+  MongoClient.connect "mongodb://localhost:27017", (err, db) ->
     if err
       console.error 'error connecting to MongoDB'
       assert.equal(err, null)

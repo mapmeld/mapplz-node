@@ -8,7 +8,8 @@ connString = "postgres://postgres:@localhost/travis_postgis"
 
 
 connect = (callback) ->
-  pg.connect connString, (err, client, done) ->
+  client = new pg.Client(connString)
+  client.connect (err, client, done) ->
     if err
       console.error 'error connecting to PostgreSQL'
       assert.equal(err, null)

@@ -12,9 +12,9 @@ class MongoDB
         console.error err if err
         callback(err, item.id)
     else
-      @collection.insert saveobj, (err, results) ->
+      @collection.insert saveobj, (err, response) ->
         console.error err if err
-        result = results[0] or null
+        result = response.ops[0] or null
         callback(err, result._id or null)
 
   delete: (item, callback) ->
@@ -24,7 +24,7 @@ class MongoDB
 
   count: (query, callback) ->
     condition = query or {}
-    @collection.find query, (err, cursor) ->
+    @collection.find condition, (err, cursor) ->
       if err
         console.error err
         callback(err, null)
@@ -35,7 +35,7 @@ class MongoDB
   query: (query, callback) ->
     condition = query or {}
     db = this
-    @collection.find(query).toArray (err, rows) ->
+    @collection.find(condition).toArray (err, rows) ->
       if err
         console.error err
         callback(err, [])
