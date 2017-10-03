@@ -27,7 +27,7 @@
   "devDependencies": {
     "coffeelint": "~1.16.0",
     "should": ">= 0.0.1",
-    "mocha": "~3.5.3",
+    "mocha": "~4.0.0",
     "chai": "~4.1.2",
     "supertest": "~3.0.0"
   },
