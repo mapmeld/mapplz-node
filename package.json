@@ -17,10 +17,11 @@
     "url": "git+https://github.com/mapmeld/mapplz-node.git"
   },
   "dependencies": {
+    "coffee-script": "^1.12.7",
     "coffeescript": "^2.0.1",
     "fast-csv": "^2.4.1",
     "geolib": "^2.0.23",
-    "mongodb": "^2.2.31",
+    "mongodb": "^3.0.0",
     "pg": "^7.3.0"
   },
   "devDependencies": {
@@ -32,7 +33,7 @@
   },
   "scripts": {
     "test": "npm run test-coffeelint && npm run test-mocha",
-    "test-mocha": "mocha --compilers coffee:coffee-script/register",
+    "test-mocha": "mocha --compilers coffee:coffeescript/register",
     "test-coffeelint": "coffeelint -f test/coffeelint.json ./lib/*.coffee ./test/*.coffee"
   },
   "license": "BSD-2-Clause",
