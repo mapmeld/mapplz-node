@@ -1,7 +1,7 @@
 {
   "name": "mapplz",
   "description": "Simple geodata and mapmaking",
-  "main": "./lib/mapplz",
+  "main": "lib/mapplz",
   "keywords": [
     "map",
     "etl",
@@ -10,15 +10,14 @@
     "postgis",
     "spatial"
   ],
-  "version": "1.0.2",
+  "version": "1.1.2",
   "author": "mapmeld",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mapmeld/mapplz-node.git"
   },
   "dependencies": {
-    "coffee-script": "^1.12.7",
-    "coffeescript": "^2.0.1",
+    "coffeescript": "^2.1.1",
     "fast-csv": "^2.4.1",
     "geolib": "^2.0.23",
     "mongodb": "^3.0.0",
