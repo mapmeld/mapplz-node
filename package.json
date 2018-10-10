@@ -20,7 +20,7 @@
     "coffeescript": "^2.1.1",
     "fast-csv": "^2.4.1",
     "geolib": "^2.0.23",
-    "mongodb": "^3.0.0",
+    "mongodb": "^3.1.8",
     "pg": "^7.3.0"
   },
   "devDependencies": {
