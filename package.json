@@ -21,7 +21,7 @@
     "fast-csv": "^2.4.1",
     "geolib": "^2.0.23",
     "mongodb": "^3.0.0",
-    "pg": "^7.3.0"
+    "pg": "^7.6.1"
   },
   "devDependencies": {
     "chai": "^4.1.2",
