@@ -12,7 +12,8 @@ addons:
 install:
   - sudo apt-get install -y postgresql-9.5-postgis-2.3
   - sudo service postgresql restart
-  - npm install coffeelint mocha coffeescript -g
+  - npm install coffeelint mocha coffeescript chai -g
+  - npm install chai
 
 before_script:
   - psql -c 'create database travis_postgis;' -U postgres
